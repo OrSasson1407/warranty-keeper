@@ -44,10 +44,11 @@ func (f *fakeStorage) Upload(_ context.Context, key string, _ []byte, _ string) 
 	return "https://fake-storage.test/" + key, nil
 }
 
-// productsTestSetup wires an authenticated router (products + receipts
-// routes behind the real RequireAuth middleware) against an isolated
-// in-memory SQLite database, plus one ready-made household/user to act as.
-type productsTestSetup struct {
+// testSetup wires an authenticated router (products, receipts, claims, and
+// households routes behind the real RequireAuth middleware) against an
+// isolated in-memory SQLite database, plus one ready-made household/user to
+// act as.
+type testSetup struct {
 	router      *gin.Engine
 	db          *gorm.DB
 	ocrProvider *fakeOCR
@@ -57,7 +58,7 @@ type productsTestSetup struct {
 	storage     *fakeStorage
 }
 
-func newProductsTestSetup(t *testing.T) *productsTestSetup {
+func newTestSetup(t *testing.T) *testSetup {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
@@ -73,7 +74,7 @@ func newProductsTestSetup(t *testing.T) *productsTestSetup {
 
 	if err := db.AutoMigrate(
 		&models.Household{}, &models.User{}, &models.Product{},
-		&models.Receipt{}, &models.WarrantyRule{},
+		&models.Receipt{}, &models.WarrantyRule{}, &models.WarrantyClaim{},
 	); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
@@ -99,13 +100,16 @@ func newProductsTestSetup(t *testing.T) *productsTestSetup {
 	authed.PUT("/products/:id", h.UpdateProduct)
 	authed.POST("/receipts", h.UploadReceipt)
 	authed.GET("/receipts/:id", h.GetReceipt)
+	authed.POST("/products/:id/claims", h.CreateClaim)
+	authed.GET("/products/:id/claims", h.ListClaims)
+	authed.GET("/households/me", h.GetMyHousehold)
 
 	token, err := auth.GenerateAccessToken(testJWTSecret, user.ID, household.ID)
 	if err != nil {
 		t.Fatalf("failed to generate access token: %v", err)
 	}
 
-	return &productsTestSetup{
+	return &testSetup{
 		router:      router,
 		db:          db,
 		ocrProvider: fakeOCRProvider,
@@ -118,7 +122,7 @@ func newProductsTestSetup(t *testing.T) *productsTestSetup {
 
 // createOtherHousehold seeds a second, unrelated household+user and returns
 // a valid access token for it — used to test cross-household authorization.
-func (s *productsTestSetup) createOtherHousehold(t *testing.T) (token string, householdID uuid.UUID) {
+func (s *testSetup) createOtherHousehold(t *testing.T) (token string, householdID uuid.UUID) {
 	t.Helper()
 	household := models.Household{Name: "Other Household", InviteCode: "OTHERCODE"}
 	if err := s.db.Create(&household).Error; err != nil {
@@ -135,7 +139,18 @@ func (s *productsTestSetup) createOtherHousehold(t *testing.T) (token string, ho
 	return tok, household.ID
 }
 
-func (s *productsTestSetup) seedRule(t *testing.T, category, brand string, months int) {
+// addHouseholdMember seeds a second user in the caller's own household —
+// used to test household member listings.
+func (s *testSetup) addHouseholdMember(t *testing.T, email, fullName string) models.User {
+	t.Helper()
+	user := models.User{Email: email, PasswordHash: "x", FullName: fullName, HouseholdID: s.householdID}
+	if err := s.db.Create(&user).Error; err != nil {
+		t.Fatalf("failed to seed household member: %v", err)
+	}
+	return user
+}
+
+func (s *testSetup) seedRule(t *testing.T, category, brand string, months int) {
 	t.Helper()
 	rule := models.WarrantyRule{Category: category, Brand: brand, DurationMonths: months, Source: "default"}
 	if err := s.db.Create(&rule).Error; err != nil {

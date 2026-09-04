@@ -9,7 +9,7 @@ import (
 	"warrantykeeper/server/internal/warranty"
 )
 
-func createProduct(t *testing.T, s *productsTestSetup, token string, body map[string]any) (int, models.Product) {
+func createProduct(t *testing.T, s *testSetup, token string, body map[string]any) (int, models.Product) {
 	t.Helper()
 	rec := doJSONAs(t, s.router, http.MethodPost, "/products", token, body)
 	var product models.Product
@@ -20,7 +20,7 @@ func createProduct(t *testing.T, s *productsTestSetup, token string, body map[st
 }
 
 func TestCreateProduct_ResolvesWarrantyFromSeededRule(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	s.seedRule(t, "מזגן", "", 24)
 
 	code, product := createProduct(t, s, s.token, map[string]any{
@@ -44,7 +44,7 @@ func TestCreateProduct_ResolvesWarrantyFromSeededRule(t *testing.T) {
 }
 
 func TestCreateProduct_UnknownCategoryFallsBackAndFlagsUncertain(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	// No rules seeded at all.
 
 	code, product := createProduct(t, s, s.token, map[string]any{
@@ -65,7 +65,7 @@ func TestCreateProduct_UnknownCategoryFallsBackAndFlagsUncertain(t *testing.T) {
 }
 
 func TestCreateProduct_ManualWarrantyOverrideIgnoresRules(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	s.seedRule(t, "מזגן", "", 24) // would resolve to 2028-01-15 if not overridden
 
 	code, product := createProduct(t, s, s.token, map[string]any{
@@ -102,7 +102,7 @@ func TestCreateProduct_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newProductsTestSetup(t)
+			s := newTestSetup(t)
 			code, _ := createProduct(t, s, s.token, tt.body)
 			if code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", code, http.StatusBadRequest)
@@ -112,7 +112,7 @@ func TestCreateProduct_ValidationErrors(t *testing.T) {
 }
 
 func TestCreateProduct_RequiresAuth(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	code, _ := createProduct(t, s, "", map[string]any{
 		"name": "X", "category": "מזגן", "purchase_date": "2026-01-01",
 	})
@@ -122,7 +122,7 @@ func TestCreateProduct_RequiresAuth(t *testing.T) {
 }
 
 func TestCreateProduct_InheritsPhotoAndLinksFromReceipt(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	receipt := models.Receipt{HouseholdID: s.householdID, ImageURL: "https://fake-storage.test/r1.jpg", Status: models.ReceiptStatusProcessed}
 	if err := s.db.Create(&receipt).Error; err != nil {
 		t.Fatalf("failed to seed receipt: %v", err)
@@ -144,7 +144,7 @@ func TestCreateProduct_InheritsPhotoAndLinksFromReceipt(t *testing.T) {
 }
 
 func TestCreateProduct_ReceiptFromOtherHouseholdIsRejected(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	_, otherHouseholdID := s.createOtherHousehold(t)
 	foreignReceipt := models.Receipt{HouseholdID: otherHouseholdID, ImageURL: "https://fake-storage.test/foreign.jpg"}
 	if err := s.db.Create(&foreignReceipt).Error; err != nil {
@@ -161,7 +161,7 @@ func TestCreateProduct_ReceiptFromOtherHouseholdIsRejected(t *testing.T) {
 }
 
 func TestListProducts_SortedSoonestToExpireFirst(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	createProduct(t, s, s.token, map[string]any{"name": "C", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2028-01-01"})
 	createProduct(t, s, s.token, map[string]any{"name": "A", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2026-06-01"})
 	createProduct(t, s, s.token, map[string]any{"name": "B", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
@@ -186,7 +186,7 @@ func TestListProducts_SortedSoonestToExpireFirst(t *testing.T) {
 }
 
 func TestListProducts_ScopedToHousehold(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	createProduct(t, s, s.token, map[string]any{"name": "Mine", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	otherToken, _ := s.createOtherHousehold(t)
@@ -200,7 +200,7 @@ func TestListProducts_ScopedToHousehold(t *testing.T) {
 	}
 }
 
-func searchNames(t *testing.T, s *productsTestSetup, token, q string) []string {
+func searchNames(t *testing.T, s *testSetup, token, q string) []string {
 	t.Helper()
 	rec := doJSONAs(t, s.router, http.MethodGet, "/products?q="+q, token, nil)
 	if rec.Code != http.StatusOK {
@@ -216,7 +216,7 @@ func searchNames(t *testing.T, s *productsTestSetup, token, q string) []string {
 }
 
 func TestListProducts_SearchIsCaseInsensitiveSubstringMatch(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	createProduct(t, s, s.token, map[string]any{"name": "Bosch Dishwasher", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 	createProduct(t, s, s.token, map[string]any{"name": "Samsung TV", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
@@ -229,7 +229,7 @@ func TestListProducts_SearchIsCaseInsensitiveSubstringMatch(t *testing.T) {
 }
 
 func TestListProducts_SearchNoMatchReturnsEmpty(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	createProduct(t, s, s.token, map[string]any{"name": "Bosch Dishwasher", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	got := searchNames(t, s, s.token, "nonexistent")
@@ -239,7 +239,7 @@ func TestListProducts_SearchNoMatchReturnsEmpty(t *testing.T) {
 }
 
 func TestListProducts_SearchScopedToHousehold(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	createProduct(t, s, s.token, map[string]any{"name": "Shared Name", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	otherToken, _ := s.createOtherHousehold(t)
@@ -252,7 +252,7 @@ func TestListProducts_SearchScopedToHousehold(t *testing.T) {
 }
 
 func TestGetProduct_NotFoundForOtherHousehold(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "X", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	otherToken, _ := s.createOtherHousehold(t)
@@ -263,7 +263,7 @@ func TestGetProduct_NotFoundForOtherHousehold(t *testing.T) {
 }
 
 func TestGetProduct_Success(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "X", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	rec := doJSONAs(t, s.router, http.MethodGet, "/products/"+product.ID.String(), s.token, nil)
@@ -278,7 +278,7 @@ func TestGetProduct_Success(t *testing.T) {
 }
 
 func TestUpdateProduct_PartialUpdateAppliesOnlyGivenFields(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "Original", "category": "מזגן", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	rec := doJSONAs(t, s.router, http.MethodPut, "/products/"+product.ID.String(), s.token, map[string]any{
@@ -301,7 +301,7 @@ func TestUpdateProduct_PartialUpdateAppliesOnlyGivenFields(t *testing.T) {
 }
 
 func TestUpdateProduct_WarrantyOverrideClearsUncertainFlag(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	// No rule seeded, so this starts out uncertain.
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "X", "category": "לא ידוע", "purchase_date": "2026-01-01"})
 	if !product.WarrantyUncertain {
@@ -326,7 +326,7 @@ func TestUpdateProduct_WarrantyOverrideClearsUncertainFlag(t *testing.T) {
 }
 
 func TestUpdateProduct_NotFoundForOtherHousehold(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "X", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
 
 	otherToken, _ := s.createOtherHousehold(t)

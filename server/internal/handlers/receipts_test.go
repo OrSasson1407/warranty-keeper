@@ -26,7 +26,7 @@ type receiptDraft struct {
 }
 
 func TestUploadReceipt_HighConfidenceResolvesCategoryAndWarranty(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	s.seedRule(t, "מזגן", "", 24)
 
 	purchaseDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
@@ -80,7 +80,7 @@ func TestUploadReceipt_HighConfidenceResolvesCategoryAndWarranty(t *testing.T) {
 }
 
 func TestUploadReceipt_NoOCRMatchFallsBackAndUncertain(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	// No rules seeded; OCR returns nothing recognizable (mirrors the stub provider).
 	s.ocrProvider.result = ocr.ParsedReceipt{Confidence: 0}
 
@@ -104,7 +104,7 @@ func TestUploadReceipt_NoOCRMatchFallsBackAndUncertain(t *testing.T) {
 }
 
 func TestUploadReceipt_OCRErrorStillReturnsUsableDraft(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	s.ocrProvider.err = errors.New("ocr provider unavailable")
 
 	rec := doMultipartAs(t, s.router, http.MethodPost, "/receipts", s.token, "image", "receipt.jpg", []byte("fake-bytes"))
@@ -127,7 +127,7 @@ func TestUploadReceipt_OCRErrorStillReturnsUsableDraft(t *testing.T) {
 }
 
 func TestUploadReceipt_StorageFailureReturns500(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	s.storage.err = errors.New("bucket unavailable")
 
 	rec := doMultipartAs(t, s.router, http.MethodPost, "/receipts", s.token, "image", "receipt.jpg", []byte("fake-bytes"))
@@ -137,7 +137,7 @@ func TestUploadReceipt_StorageFailureReturns500(t *testing.T) {
 }
 
 func TestUploadReceipt_MissingFileReturns400(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	rec := doMultipartNoFileAs(t, s.router, http.MethodPost, "/receipts", s.token)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
@@ -145,7 +145,7 @@ func TestUploadReceipt_MissingFileReturns400(t *testing.T) {
 }
 
 func TestUploadReceipt_RequiresAuth(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	rec := doMultipartAs(t, s.router, http.MethodPost, "/receipts", "", "image", "receipt.jpg", []byte("fake-bytes"))
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
@@ -153,7 +153,7 @@ func TestUploadReceipt_RequiresAuth(t *testing.T) {
 }
 
 func TestGetReceipt_ScopedToHousehold(t *testing.T) {
-	s := newProductsTestSetup(t)
+	s := newTestSetup(t)
 	receipt := models.Receipt{HouseholdID: s.householdID, ImageURL: "https://fake-storage.test/x.jpg"}
 	if err := s.db.Create(&receipt).Error; err != nil {
 		t.Fatalf("failed to seed receipt: %v", err)
