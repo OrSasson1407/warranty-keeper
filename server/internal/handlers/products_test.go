@@ -9,13 +9,6 @@ import (
 	"warrantykeeper/server/internal/warranty"
 )
 
-// NOTE: ListProducts' ?q= search uses Postgres-only "ILIKE" syntax (see
-// products.go), which SQLite rejects outright. That's the right call for
-// the real Postgres deployment, but it means the search path can't be
-// exercised by this in-memory SQLite test harness — there's deliberately no
-// test for it here. Covering it would need either a Postgres testcontainer
-// or swapping ILIKE for a portable (LOWER(name) LIKE LOWER(?)) query.
-
 func createProduct(t *testing.T, s *productsTestSetup, token string, body map[string]any) (int, models.Product) {
 	t.Helper()
 	rec := doJSONAs(t, s.router, http.MethodPost, "/products", token, body)
@@ -204,6 +197,57 @@ func TestListProducts_ScopedToHousehold(t *testing.T) {
 	decodeJSON(t, rec, &products)
 	if len(products) != 1 || products[0].Name != "Mine" {
 		t.Errorf("got %+v, want exactly one product named \"Mine\"", products)
+	}
+}
+
+func searchNames(t *testing.T, s *productsTestSetup, token, q string) []string {
+	t.Helper()
+	rec := doJSONAs(t, s.router, http.MethodGet, "/products?q="+q, token, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var products []models.Product
+	decodeJSON(t, rec, &products)
+	names := make([]string, len(products))
+	for i, p := range products {
+		names[i] = p.Name
+	}
+	return names
+}
+
+func TestListProducts_SearchIsCaseInsensitiveSubstringMatch(t *testing.T) {
+	s := newProductsTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "Bosch Dishwasher", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+	createProduct(t, s, s.token, map[string]any{"name": "Samsung TV", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	for _, q := range []string{"bosch", "BOSCH", "Bosch", "osch"} {
+		got := searchNames(t, s, s.token, q)
+		if len(got) != 1 || got[0] != "Bosch Dishwasher" {
+			t.Errorf("q=%q: got %v, want exactly [\"Bosch Dishwasher\"]", q, got)
+		}
+	}
+}
+
+func TestListProducts_SearchNoMatchReturnsEmpty(t *testing.T) {
+	s := newProductsTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "Bosch Dishwasher", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	got := searchNames(t, s, s.token, "nonexistent")
+	if len(got) != 0 {
+		t.Errorf("got %v, want no results", got)
+	}
+}
+
+func TestListProducts_SearchScopedToHousehold(t *testing.T) {
+	s := newProductsTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "Shared Name", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	otherToken, _ := s.createOtherHousehold(t)
+	createProduct(t, s, otherToken, map[string]any{"name": "Shared Name", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	got := searchNames(t, s, s.token, "Shared")
+	if len(got) != 1 {
+		t.Errorf("got %v, want exactly 1 result scoped to the caller's household", got)
 	}
 }
 

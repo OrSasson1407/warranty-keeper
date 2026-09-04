@@ -104,7 +104,7 @@ func (h *Handler) ListProducts(c *gin.Context) {
 	query := h.DB.Where("household_id = ?", householdID(c))
 
 	if q := c.Query("q"); q != "" {
-		query = query.Where("name ILIKE ?", "%"+q+"%")
+		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+q+"%")
 	}
 
 	if err := query.Order("warranty_expires_at ASC").Find(&products).Error; err != nil {
