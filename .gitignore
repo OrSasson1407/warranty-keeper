@@ -9,6 +9,7 @@ server/.env
 server/tmp/
 server/*.exe
 server/data/
+server/coverage.out
 /bin/
 
 # Mobile (Expo) - see mobile/.gitignore for the rest

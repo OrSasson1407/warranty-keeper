@@ -1,6 +1,7 @@
 # WarrantyKeeper
 
 [![GitHub repo](https://img.shields.io/badge/GitHub-warranty--keeper-181717?logo=github)](https://github.com/OrSasson1407/warranty-keeper)
+[![codecov](https://codecov.io/gh/OrSasson1407/warranty-keeper/graph/badge.svg)](https://codecov.io/gh/OrSasson1407/warranty-keeper)
 
 Mobile app for tracking home product purchases, receipts, and warranty expiration dates.
 
