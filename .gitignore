@@ -1,0 +1,15 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Go server
+server/.env
+server/tmp/
+server/*.exe
+server/data/
+/bin/
+
+# Mobile (Expo) - see mobile/.gitignore for the rest
+mobile/.env
