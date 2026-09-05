@@ -106,7 +106,10 @@ describe('registerForExpiryPush', () => {
   it('creates the Android notification channel only on Android', async () => {
     setPlatform('android');
     await registerForExpiryPush();
-    expect(mockSetChannel).toHaveBeenCalledWith('default', expect.objectContaining({ importance: 3 }));
+    expect(mockSetChannel).toHaveBeenCalledWith(
+      'default',
+      expect.objectContaining({ importance: 3 }),
+    );
   });
 
   it('does not touch the notification channel on iOS', async () => {

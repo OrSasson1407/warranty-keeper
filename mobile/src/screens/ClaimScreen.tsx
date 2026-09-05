@@ -81,7 +81,9 @@ export default function ClaimScreen({ navigation, route }: Props) {
           <>
             {contact.phone ? (
               <TouchableOpacity onPress={() => Linking.openURL(`tel:${contact.phone}`)}>
-                <Text style={styles.contactLine}>📞 שירות לקוחות {product.brand}: {contact.phone}</Text>
+                <Text style={styles.contactLine}>
+                  📞 שירות לקוחות {product.brand}: {contact.phone}
+                </Text>
               </TouchableOpacity>
             ) : null}
             {contact.website ? (
@@ -112,7 +114,12 @@ export default function ClaimScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 12 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
   title: { fontSize: 18, fontWeight: '700', color: colors.text, textAlign: 'right' },
   label: { fontSize: 15, fontWeight: '600', color: colors.text, textAlign: 'right', marginTop: 8 },
   textarea: {

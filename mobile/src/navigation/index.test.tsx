@@ -15,7 +15,9 @@ import { useAuth } from '../context/AuthContext';
 // React.createElement (no JSX) to build the stub without needing a
 // lexically-scoped `Text` at all.
 function mockStubScreen(label: string) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- see hoisting note above
   const RN = require('react-native');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- see hoisting note above
   const React = require('react');
   function StubScreen() {
     return React.createElement(RN.Text, null, label);

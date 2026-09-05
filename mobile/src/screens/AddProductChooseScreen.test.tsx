@@ -41,7 +41,9 @@ describe('AddProductChooseScreen', () => {
 
     fireEvent.press(screen.getByText('צלם קבלה'));
 
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('נדרשת הרשאת מצלמה', expect.any(String)));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('נדרשת הרשאת מצלמה', expect.any(String)),
+    );
     expect(navigation.navigate).not.toHaveBeenCalled();
     expect(mockUploadReceipt).not.toHaveBeenCalled();
   });
@@ -71,8 +73,14 @@ describe('AddProductChooseScreen', () => {
 
     fireEvent.press(screen.getByText('צלם קבלה'));
 
-    await waitFor(() => expect(navigation.navigate).toHaveBeenCalledWith('ConfirmProduct', { draft }));
-    expect(mockUploadReceipt).toHaveBeenCalledWith({ uri: 'file:///x.jpg', name: 'x.jpg', type: 'image/jpeg' });
+    await waitFor(() =>
+      expect(navigation.navigate).toHaveBeenCalledWith('ConfirmProduct', { draft }),
+    );
+    expect(mockUploadReceipt).toHaveBeenCalledWith({
+      uri: 'file:///x.jpg',
+      name: 'x.jpg',
+      type: 'image/jpeg',
+    });
   });
 
   it('shows the server error message when the upload fails', async () => {

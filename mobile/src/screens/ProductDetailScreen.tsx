@@ -1,5 +1,14 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -38,7 +47,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   if (loading || !product) {
@@ -79,7 +88,10 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
       </View>
 
       {product.receipt_id && product.photo_url ? (
-        <TouchableOpacity style={styles.receiptButton} onPress={() => Linking.openURL(product.photo_url)}>
+        <TouchableOpacity
+          style={styles.receiptButton}
+          onPress={() => Linking.openURL(product.photo_url)}
+        >
           <Text style={styles.receiptButtonText}>🧾 צפה בקבלה</Text>
         </TouchableOpacity>
       ) : null}
@@ -112,7 +124,12 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 12, paddingBottom: 48 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
   image: { width: '100%', height: 200, borderRadius: 14, backgroundColor: colors.border },
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'right' },

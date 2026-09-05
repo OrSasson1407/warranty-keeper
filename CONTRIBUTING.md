@@ -36,17 +36,24 @@ npx jest
 
 Mobile tests use `@testing-library/react-native` **pinned to v13.3.3** — don't bump this without checking compatibility with `jest-expo`; v14+ introduces breaking changes that broke the setup used here.
 
+Also run lint and format checks before opening a PR:
+
+```bash
+npx eslint .
+npx prettier --check .    # or `npm run format` to auto-fix
+```
+
 ## CI
 
 - [`server-ci.yml`](.github/workflows/server-ci.yml) runs on changes under `server/**`: build, vet, test, coverage upload to Codecov (flag `server`).
-- [`mobile-ci.yml`](.github/workflows/mobile-ci.yml) runs on changes under `mobile/**`: `tsc --noEmit`, `jest --coverage`, coverage upload to Codecov (flag `mobile`).
+- [`mobile-ci.yml`](.github/workflows/mobile-ci.yml) runs on changes under `mobile/**`: `tsc --noEmit`, ESLint, Prettier format check, `jest --coverage`, coverage upload to Codecov (flag `mobile`).
 
 Both can also be triggered manually via `workflow_dispatch`. Coverage badges use Codecov's carryforward config (`codecov.yml`) so a commit that only touches one side doesn't zero out the other's badge.
 
 ## Code style
 
 - Go: standard `gofmt`/`go vet` conventions, no linter config beyond that.
-- TypeScript: no dedicated linter is configured yet; match the existing code style in the file you're editing.
+- TypeScript: ESLint (`eslint-config-expo`) + Prettier, both enforced in CI. Run `npx eslint .` and `npx prettier --check .` from `mobile/` before opening a PR.
 - Commit messages: short, imperative, describe the *why* when it's not obvious from the diff.
 
 ## Reporting bugs / requesting features

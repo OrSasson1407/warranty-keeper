@@ -6,7 +6,7 @@
 // globally so screens that pull in tokenStore.ts (directly or via api/client)
 // don't each need their own ad-hoc mock.
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
 // The first test in any given file pays for one-time module/transform

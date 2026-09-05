@@ -25,8 +25,16 @@ function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Onboarding" component={OnboardingScreen} />
-      <AuthStack.Screen name="Login" component={LoginScreen} options={{ headerShown: true, title: 'התחברות' }} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} options={{ headerShown: true, title: 'הרשמה' }} />
+      <AuthStack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ headerShown: true, title: 'התחברות' }}
+      />
+      <AuthStack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ headerShown: true, title: 'הרשמה' }}
+      />
     </AuthStack.Navigator>
   );
 }
@@ -34,7 +42,11 @@ function AuthNavigator() {
 function AppNavigator() {
   return (
     <AppStack.Navigator screenOptions={{ headerShown: true }}>
-      <AppStack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }} />
+      <AppStack.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ headerShown: false }}
+      />
       <AppStack.Screen
         name="AddProductChoose"
         component={AddProductChooseScreen}
@@ -62,7 +74,14 @@ export default function RootNavigator() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
         <ActivityIndicator size="large" />
       </View>
     );

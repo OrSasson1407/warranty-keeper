@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api } from '../api/client';
@@ -19,6 +27,7 @@ export default function SearchScreen({ navigation }: Props) {
   useEffect(() => {
     const q = query.trim();
     if (!q) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting results when the query is cleared, not derived state
       setResults([]);
       setSearched(false);
       return;

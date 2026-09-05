@@ -1,4 +1,4 @@
-import { Alert, Share, Switch } from 'react-native';
+import { Alert, Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
@@ -65,7 +65,7 @@ describe('SettingsScreen', () => {
           { id: 'u1', full_name: 'מיכל כהן', email: 'michal@example.com' },
           { id: 'u2', full_name: 'דני כהן', email: 'dani@example.com' },
         ],
-      })
+      }),
     );
     renderScreen();
     expect(await screen.findByText('משק הבית מלא (מקסימום 2 חברים)')).toBeTruthy();
@@ -78,7 +78,7 @@ describe('SettingsScreen', () => {
     await waitFor(() =>
       expect(Share.share).toHaveBeenCalledWith({
         message: expect.stringContaining('ABCD1234'),
-      })
+      }),
     );
   });
 
@@ -99,7 +99,9 @@ describe('SettingsScreen', () => {
 
     fireEvent(toggle, 'valueChange', true);
 
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('לא ניתן להפעיל התראות', expect.any(String)));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('לא ניתן להפעיל התראות', expect.any(String)),
+    );
     await waitFor(async () => expect(await AsyncStorage.getItem('wk_push_enabled')).toBe('false'));
   });
 

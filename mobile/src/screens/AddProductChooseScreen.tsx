@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -75,8 +83,20 @@ export default function AddProductChooseScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 24, justifyContent: 'center', gap: 24 },
-  heading: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'center', marginBottom: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 24,
+    justifyContent: 'center',
+    gap: 24,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   captureButton: {
     backgroundColor: colors.primary,
     borderRadius: 20,

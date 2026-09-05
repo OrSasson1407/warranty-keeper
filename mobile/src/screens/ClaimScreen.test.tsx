@@ -46,7 +46,9 @@ afterEach(() => {
 
 function renderScreen(productId = 'p1') {
   const navigation = createMockNavigation();
-  render(<ClaimScreen navigation={navigation as any} route={createMockRoute({ productId }) as any} />);
+  render(
+    <ClaimScreen navigation={navigation as any} route={createMockRoute({ productId }) as any} />,
+  );
   return navigation;
 }
 

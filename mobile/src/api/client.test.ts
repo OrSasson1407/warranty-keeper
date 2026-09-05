@@ -39,7 +39,7 @@ afterEach(() => {
 describe('api.login', () => {
   it('POSTs credentials and returns the parsed response', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
-      jsonResponse(200, { access_token: 'a', refresh_token: 'b', user: { id: '1' } })
+      jsonResponse(200, { access_token: 'a', refresh_token: 'b', user: { id: '1' } }),
     );
 
     const result = await api.login('a@example.com', 'pw');
@@ -95,7 +95,9 @@ describe('authorization header', () => {
 
 describe('401 refresh-and-retry', () => {
   it('refreshes the access token once and retries the original request', async () => {
-    mockedTokenStore.getAccessToken.mockResolvedValueOnce('expired-token').mockResolvedValueOnce('new-token');
+    mockedTokenStore.getAccessToken
+      .mockResolvedValueOnce('expired-token')
+      .mockResolvedValueOnce('new-token');
     mockedTokenStore.getRefreshToken.mockResolvedValue('a-refresh-token');
 
     (globalThis.fetch as jest.Mock)
@@ -135,7 +137,12 @@ describe('401 refresh-and-retry', () => {
 describe('resolveWarranty', () => {
   it('builds the query string from category, brand, and purchase date', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
-      jsonResponse(200, { warranty_expires_at: '2027-01-01', duration_months: 12, uncertain: false, source: 'default' })
+      jsonResponse(200, {
+        warranty_expires_at: '2027-01-01',
+        duration_months: 12,
+        uncertain: false,
+        source: 'default',
+      }),
     );
 
     await api.resolveWarranty('מזגן', 'טורנדו', '2026-01-01');

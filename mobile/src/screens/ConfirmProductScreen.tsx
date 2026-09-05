@@ -42,6 +42,7 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (!category) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for the async call below, not derived state
     setResolving(true);
     api
       .resolveWarranty(category, brand, purchaseDate || todayISO())
@@ -57,7 +58,6 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, brand, purchaseDate]);
 
   const onSave = async () => {
@@ -101,13 +101,23 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       ) : null}
 
       <Field label="שם מוצר">
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="לדוגמה: מזגן טורנדו" />
+        <TextInput
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+          placeholder="לדוגמה: מזגן טורנדו"
+        />
       </Field>
 
       <SelectField label="קטגוריה" value={category} options={CATEGORIES} onChange={setCategory} />
 
       <Field label="מותג (אופציונלי)">
-        <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder="לדוגמה: טורנדו" />
+        <TextInput
+          style={styles.input}
+          value={brand}
+          onChangeText={setBrand}
+          placeholder="לדוגמה: טורנדו"
+        />
       </Field>
 
       <Field label="תאריך קנייה (YYYY-MM-DD)">
@@ -120,7 +130,12 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       </Field>
 
       <Field label="מחיר (₪, אופציונלי)">
-        <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="numeric" />
+        <TextInput
+          style={styles.input}
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="numeric"
+        />
       </Field>
 
       <SelectField label="חדר" value={room} options={ROOMS} onChange={setRoom} />
@@ -144,7 +159,11 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       </View>
 
       <TouchableOpacity style={styles.saveButton} onPress={onSave} disabled={saving}>
-        {saving ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.saveButtonText}>שמור מוצר</Text>}
+        {saving ? (
+          <ActivityIndicator color={colors.primaryText} />
+        ) : (
+          <Text style={styles.saveButtonText}>שמור מוצר</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );

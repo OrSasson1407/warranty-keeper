@@ -33,6 +33,12 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Lint
+        run: npx eslint .
+
+      - name: Format check
+        run: npx prettier --check .
+
       - name: Test
         run: npx jest --coverage
 

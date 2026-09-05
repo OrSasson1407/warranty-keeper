@@ -62,12 +62,17 @@ describe('RegisterScreen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('סיסמה (8 תווים לפחות)'), 'supersecret1');
     fireEvent.changeText(
       screen.getByPlaceholderText('קוד הזמנה (אופציונלי, אם מצטרפים למשק בית קיים)'),
-      '  ABCD1234  '
+      '  ABCD1234  ',
     );
     fireEvent.press(screen.getByText('הרשמה'));
 
     await waitFor(() =>
-      expect(register).toHaveBeenCalledWith('ron@example.com', 'supersecret1', 'Ron Cohen', 'ABCD1234')
+      expect(register).toHaveBeenCalledWith(
+        'ron@example.com',
+        'supersecret1',
+        'Ron Cohen',
+        'ABCD1234',
+      ),
     );
   });
 
@@ -82,7 +87,7 @@ describe('RegisterScreen', () => {
     fireEvent.press(screen.getByText('הרשמה'));
 
     await waitFor(() =>
-      expect(register).toHaveBeenCalledWith('ron@example.com', 'supersecret1', 'Ron', undefined)
+      expect(register).toHaveBeenCalledWith('ron@example.com', 'supersecret1', 'Ron', undefined),
     );
   });
 

@@ -8,7 +8,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -107,7 +106,13 @@ export default function RegisterScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 24, gap: 12 },
-  title: { fontSize: 24, fontWeight: '700', color: colors.text, marginBottom: 16, textAlign: 'right' },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'right',
+  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,

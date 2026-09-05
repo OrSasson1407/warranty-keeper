@@ -10,7 +10,12 @@ const USER_KEY = 'wk_user';
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  register: (email: string, password: string, fullName: string, inviteCode?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    fullName: string,
+    inviteCode?: string,
+  ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -48,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.register(email, password, fullName, inviteCode);
       await persist(res.access_token, res.refresh_token, res.user);
     },
-    [persist]
+    [persist],
   );
 
   const login = useCallback(
@@ -56,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.login(email, password);
       await persist(res.access_token, res.refresh_token, res.user);
     },
-    [persist]
+    [persist],
   );
 
   const logout = useCallback(async () => {

@@ -36,7 +36,7 @@ describe('OnboardingScreen', () => {
     expect(screen.getByText('הרשמה')).toBeTruthy();
   });
 
-  it('navigates to Register when the last slide\'s primary button is pressed', () => {
+  it("navigates to Register when the last slide's primary button is pressed", () => {
     const navigation = createMockNavigation();
     render(<OnboardingScreen navigation={navigation as any} route={{} as any} />);
     const scrollView = screen.UNSAFE_getByType(ScrollView);

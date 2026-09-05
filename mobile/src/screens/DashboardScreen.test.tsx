@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import DashboardScreen from './DashboardScreen';
 import { api } from '../api/client';
@@ -8,7 +8,9 @@ import { createMockNavigation } from '../testUtils/navigation';
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (callback: () => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock factories can't reference out-of-scope imports
     const React = require('react');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- this is a test mock, not a real component effect
     React.useEffect(callback, []);
   },
 }));
@@ -51,7 +53,9 @@ describe('DashboardScreen', () => {
 
   it('shows an empty-state message once loading finishes with no products', async () => {
     render(<DashboardScreen navigation={createMockNavigation() as any} route={{} as any} />);
-    expect(await screen.findByText('עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!')).toBeTruthy();
+    expect(
+      await screen.findByText('עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!'),
+    ).toBeTruthy();
   });
 
   it('lists returned products by name', async () => {

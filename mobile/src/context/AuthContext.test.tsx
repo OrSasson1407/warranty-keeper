@@ -55,7 +55,10 @@ function TestConsumer() {
       >
         <Text>register</Text>
       </TouchableOpacity>
-      <TouchableOpacity testID="login-btn" onPress={() => login('a@example.com', 'pw').catch(() => {})}>
+      <TouchableOpacity
+        testID="login-btn"
+        onPress={() => login('a@example.com', 'pw').catch(() => {})}
+      >
         <Text>login</Text>
       </TouchableOpacity>
       <TouchableOpacity testID="logout-btn" onPress={() => logout()}>
@@ -69,7 +72,7 @@ function renderProvider() {
   return render(
     <AuthProvider>
       <TestConsumer />
-    </AuthProvider>
+    </AuthProvider>,
   );
 }
 

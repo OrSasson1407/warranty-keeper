@@ -67,13 +67,20 @@ afterEach(() => {
 
 function renderManual() {
   const navigation = createMockNavigation();
-  render(<ConfirmProductScreen navigation={navigation as any} route={createMockRoute({}) as any} />);
+  render(
+    <ConfirmProductScreen navigation={navigation as any} route={createMockRoute({}) as any} />,
+  );
   return navigation;
 }
 
 function renderWithDraft(d: ReceiptDraft) {
   const navigation = createMockNavigation();
-  render(<ConfirmProductScreen navigation={navigation as any} route={createMockRoute({ draft: d }) as any} />);
+  render(
+    <ConfirmProductScreen
+      navigation={navigation as any}
+      route={createMockRoute({ draft: d }) as any}
+    />,
+  );
   return navigation;
 }
 
@@ -93,13 +100,15 @@ describe('ConfirmProductScreen', () => {
 
   it('shows a low-confidence warning when the draft OCR confidence is under 0.5', () => {
     renderWithDraft(draft({ confidence: 0.2 }));
-    expect(screen.getByText('לא הצלחנו לזהות את כל הפרטים אוטומטית — נא להשלים ולוודא ידנית.')).toBeTruthy();
+    expect(
+      screen.getByText('לא הצלחנו לזהות את כל הפרטים אוטומטית — נא להשלים ולוודא ידנית.'),
+    ).toBeTruthy();
   });
 
   it('does not show the low-confidence warning for a confident draft', () => {
     renderWithDraft(draft({ confidence: 0.9 }));
     expect(
-      screen.queryByText('לא הצלחנו לזהות את כל הפרטים אוטומטית — נא להשלים ולוודא ידנית.')
+      screen.queryByText('לא הצלחנו לזהות את כל הפרטים אוטומטית — נא להשלים ולוודא ידנית.'),
     ).toBeNull();
   });
 
@@ -135,7 +144,9 @@ describe('ConfirmProductScreen', () => {
 
     await waitFor(() => expect(screen.getByText(/\(משוער\)/)).toBeTruthy());
     expect(
-      screen.getByText('לא מצאנו כלל מדויק לקטגוריה הזו — ברירת מחדל של 12 חודשים. ניתן לערוך ידנית בהמשך.')
+      screen.getByText(
+        'לא מצאנו כלל מדויק לקטגוריה הזו — ברירת מחדל של 12 חודשים. ניתן לערוך ידנית בהמשך.',
+      ),
     ).toBeTruthy();
   });
 
@@ -154,7 +165,7 @@ describe('ConfirmProductScreen', () => {
     fireEvent.press(screen.getByText('שמור מוצר'));
 
     await waitFor(() =>
-      expect(navigation.replace).toHaveBeenCalledWith('ProductDetail', { productId: 'new-id' })
+      expect(navigation.replace).toHaveBeenCalledWith('ProductDetail', { productId: 'new-id' }),
     );
     const payload = mockCreateProduct.mock.calls[0][0];
     expect(payload.name).toBe('רכישה מטורנדו');
@@ -169,6 +180,8 @@ describe('ConfirmProductScreen', () => {
 
     fireEvent.press(screen.getByText('שמור מוצר'));
 
-    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה בשמירה', 'שמירה נכשלה בשרת'));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('שגיאה בשמירה', 'שמירה נכשלה בשרת'),
+    );
   });
 });

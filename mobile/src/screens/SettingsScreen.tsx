@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Share, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Share,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -22,7 +31,10 @@ export default function SettingsScreen(_props: Props) {
 
   useEffect(() => {
     (async () => {
-      const [h, pref] = await Promise.all([api.getMyHousehold(), AsyncStorage.getItem(PUSH_PREF_KEY)]);
+      const [h, pref] = await Promise.all([
+        api.getMyHousehold(),
+        AsyncStorage.getItem(PUSH_PREF_KEY),
+      ]);
       setHousehold(h);
       setPushEnabled(pref === 'true');
       setLoading(false);
@@ -61,7 +73,7 @@ export default function SettingsScreen(_props: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>משק בית: "{household.name}"</Text>
+      <Text style={styles.sectionTitle}>{`משק בית: "${household.name}"`}</Text>
       <View style={styles.card}>
         {household.members.map((m) => (
           <Text key={m.id} style={styles.memberRow}>
@@ -70,7 +82,9 @@ export default function SettingsScreen(_props: Props) {
         ))}
         {canInvite ? (
           <TouchableOpacity style={styles.inviteButton} onPress={onShareInvite}>
-            <Text style={styles.inviteButtonText}>+ הזמן בן/בת משפחה (קוד: {household.invite_code})</Text>
+            <Text style={styles.inviteButtonText}>
+              + הזמן בן/בת משפחה (קוד: {household.invite_code})
+            </Text>
           </TouchableOpacity>
         ) : (
           <Text style={styles.fullNote}>משק הבית מלא (מקסימום 2 חברים)</Text>
@@ -94,8 +108,19 @@ export default function SettingsScreen(_props: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: 20, gap: 8 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: colors.textMuted, textAlign: 'right', marginTop: 16 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textAlign: 'right',
+    marginTop: 16,
+  },
   card: { backgroundColor: colors.surface, borderRadius: 12, padding: 14, gap: 10 },
   memberRow: { fontSize: 16, color: colors.text, textAlign: 'right' },
   inviteButton: { paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },

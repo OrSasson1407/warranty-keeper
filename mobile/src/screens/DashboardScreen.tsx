@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -33,7 +41,7 @@ export default function DashboardScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   const visible =
@@ -51,21 +59,29 @@ export default function DashboardScreen({ navigation }: Props) {
           <TouchableOpacity onPress={() => navigation.navigate('Search')} style={styles.iconButton}>
             <Text style={styles.icon}>🔍</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.iconButton}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Settings')}
+            style={styles.iconButton}
+          >
             <Text style={styles.icon}>⚙️</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.tabs}>
-        <TouchableOpacity onPress={() => setFilter('all')} style={[styles.tab, filter === 'all' && styles.tabActive]}>
+        <TouchableOpacity
+          onPress={() => setFilter('all')}
+          style={[styles.tab, filter === 'all' && styles.tabActive]}
+        >
           <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>הכל</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setFilter('expiring')}
           style={[styles.tab, filter === 'expiring' && styles.tabActive]}
         >
-          <Text style={[styles.tabText, filter === 'expiring' && styles.tabTextActive]}>קרוב לתפוגה</Text>
+          <Text style={[styles.tabText, filter === 'expiring' && styles.tabTextActive]}>
+            קרוב לתפוגה
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -77,7 +93,9 @@ export default function DashboardScreen({ navigation }: Props) {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!</Text>
+              <Text style={styles.emptyText}>
+                עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!
+              </Text>
             </View>
           ) : null
         }
@@ -123,7 +141,12 @@ const styles = StyleSheet.create({
   iconButton: { padding: 6 },
   icon: { fontSize: 20 },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 8 },
-  tab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.surface },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+  },
   tabActive: { backgroundColor: colors.primary },
   tabText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
   tabTextActive: { color: colors.primaryText },

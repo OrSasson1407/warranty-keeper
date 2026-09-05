@@ -8,7 +8,9 @@ import { createMockNavigation, createMockRoute } from '../testUtils/navigation';
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (callback: () => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock factories can't reference out-of-scope imports
     const React = require('react');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- this is a test mock, not a real component effect
     React.useEffect(callback, []);
   },
 }));
@@ -64,7 +66,10 @@ afterEach(() => {
 function renderScreen(productId = 'p1') {
   const navigation = createMockNavigation();
   render(
-    <ProductDetailScreen navigation={navigation as any} route={createMockRoute({ productId }) as any} />
+    <ProductDetailScreen
+      navigation={navigation as any}
+      route={createMockRoute({ productId }) as any}
+    />,
   );
   return navigation;
 }
@@ -88,7 +93,9 @@ describe('ProductDetailScreen', () => {
   });
 
   it('lists claims with their description and Hebrew status label', async () => {
-    mockListClaims.mockResolvedValue([claim({ issue_description: 'לא מקרר', status: 'in_progress' })]);
+    mockListClaims.mockResolvedValue([
+      claim({ issue_description: 'לא מקרר', status: 'in_progress' }),
+    ]);
     renderScreen();
 
     expect(await screen.findByText('לא מקרר')).toBeTruthy();
@@ -110,7 +117,9 @@ describe('ProductDetailScreen', () => {
   it('opens the receipt image when "צפה בקבלה" is pressed', async () => {
     renderScreen();
     fireEvent.press(await screen.findByText('🧾 צפה בקבלה'));
-    await waitFor(() => expect(Linking.openURL).toHaveBeenCalledWith('https://example.test/p1.jpg'));
+    await waitFor(() =>
+      expect(Linking.openURL).toHaveBeenCalledWith('https://example.test/p1.jpg'),
+    );
   });
 
   it('hides the receipt button when there is no linked receipt', async () => {
