@@ -99,6 +99,7 @@ Environment variables (see `.env.example`):
 | `go run ./cmd/migrate` | Creates/updates all tables (safe to re-run) |
 | `go run ./cmd/seed` | Seeds default `warranty_rules` (idempotent, ~32 categories) |
 | `go run ./cmd/notify-expiring` | The single scheduled job: pushes a warning for every product expiring in exactly 30 days. Run once a day via cron / Windows Task Scheduler — there's no in-process scheduler. |
+| `go run ./cmd/demo-data` | Seeds a realistic demo dataset (household, 2 users, 6 products, a claim, a receipt) for local testing. `go run ./cmd/demo-data -reset` removes it again. Refuses to run unless `APP_ENV=development`, and only ever touches its own `[DEMO]`-prefixed household — see [CONTRIBUTING.md](CONTRIBUTING.md#demo-data). |
 
 ### Swapping stubs for the real thing later
 

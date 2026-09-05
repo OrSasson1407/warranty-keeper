@@ -10,6 +10,17 @@ Read [`docs/warranty-tracker-mvp-scope.md`](docs/warranty-tracker-mvp-scope.md) 
 
 Follow the [Server setup](README.md#server-setup) and [Mobile setup](README.md#mobile-setup) sections of the README to get both halves running locally.
 
+## Demo data
+
+Don't seed demo or test data by hand (curl requests + manual `psql` cleanup) against whatever database `DATABASE_URL` happens to point at — that's exactly how a database can end up mistaken for disposable when it isn't. Use `go run ./cmd/demo-data` instead:
+
+- Creates one household, two users, six products spanning every warranty status, a claim, and a receipt.
+- Refuses to run at all unless `APP_ENV=development`.
+- Only ever touches its own household (name-prefixed `[DEMO]`) — it never truncates tables or touches unrelated data.
+- `go run ./cmd/demo-data -reset` removes exactly what it created.
+
+If you need one-off data beyond this dataset, extend `cmd/demo-data` rather than reaching for raw SQL against a shared dev database.
+
 ## Making a change
 
 1. Fork the repo and create a branch off `master`.
