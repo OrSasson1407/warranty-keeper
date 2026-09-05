@@ -10,6 +10,7 @@
 [![License: MIT](https://img.shields.io/github/license/OrSasson1407/warranty-keeper)](LICENSE)
 [![repo size](https://img.shields.io/github/repo-size/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper)
 [![open issues](https://img.shields.io/github/issues/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper/issues)
+[![open pull requests](https://img.shields.io/github/issues-pr/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper/pulls)
 
 Mobile app for tracking home product purchases, receipts, and warranty expiration dates.
 
