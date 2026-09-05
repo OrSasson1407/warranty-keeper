@@ -1,6 +1,6 @@
 # WarrantyKeeper
 
-<img src="mobile/assets/favicon.png" height="20" alt="favicon"> [![GitHub repo](https://img.shields.io/badge/GitHub-warranty--keeper-181717?logo=github)](https://github.com/OrSasson1407/warranty-keeper) [![version](https://img.shields.io/github/package-json/v/OrSasson1407/warranty-keeper?filename=mobile%2Fpackage.json)](mobile/package.json) [![License: MIT](https://img.shields.io/github/license/OrSasson1407/warranty-keeper)](LICENSE)
+<img src="mobile/assets/favicon.png" height="20" alt="favicon"> [![GitHub repo](https://img.shields.io/badge/GitHub-warranty--keeper-181717?logo=github)](https://github.com/OrSasson1407/warranty-keeper) [![release](https://img.shields.io/github/v/release/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper/releases/latest) [![version](https://img.shields.io/github/package-json/v/OrSasson1407/warranty-keeper?filename=mobile%2Fpackage.json)](mobile/package.json) [![License: MIT](https://img.shields.io/github/license/OrSasson1407/warranty-keeper)](LICENSE)
 
 [![Server CI](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/server-ci.yml/badge.svg)](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/server-ci.yml) [![Mobile CI](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/mobile-ci.yml/badge.svg)](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/mobile-ci.yml)
 
@@ -124,6 +124,8 @@ EXPO_PUBLIC_API_URL=http://192.168.1.20:8080 npm start
 ```
 
 ## Project status
+
+**v1.0.0 released** — see [CHANGELOG.md](CHANGELOG.md) and the [release notes](https://github.com/OrSasson1407/warranty-keeper/releases/latest).
 
 All 5 build steps are in place and manually verified end-to-end (backend via curl, mobile via `tsc` + web preview):
 
