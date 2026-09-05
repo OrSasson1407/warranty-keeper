@@ -15,3 +15,11 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 // padding every first test by hand.
 const { configure } = require('@testing-library/react-native');
 configure({ asyncUtilTimeout: 5000 });
+
+// Jest's own per-test timeout defaults to 5000ms too — the same value as
+// asyncUtilTimeout above. On a slower/colder CI runner that lets the outer
+// test timeout race a findBy/waitFor call and win, producing a generic
+// "Exceeded timeout of 5000 ms for a test" instead of a useful error. Give
+// it real headroom over asyncUtilTimeout so waitFor always gets to finish
+// (and report clearly) first.
+jest.setTimeout(15000);
