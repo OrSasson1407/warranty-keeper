@@ -1,0 +1,12 @@
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: server
+      paths:
+        - server/
+      carryforward: true
+    - name: mobile
+      paths:
+        - mobile/
+      carryforward: true
