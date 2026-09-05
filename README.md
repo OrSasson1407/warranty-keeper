@@ -6,6 +6,7 @@
 [![codecov](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg)](https://codecov.io/gh/OrSasson1407/warranty-keeper)
 [![server coverage](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg?flag=server)](https://codecov.io/gh/OrSasson1407/warranty-keeper/tree/master/server)
 [![mobile coverage](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg?flag=mobile)](https://codecov.io/gh/OrSasson1407/warranty-keeper/tree/master/mobile)
+[![License: MIT](https://img.shields.io/github/license/OrSasson1407/warranty-keeper)](LICENSE)
 
 Mobile app for tracking home product purchases, receipts, and warranty expiration dates.
 
