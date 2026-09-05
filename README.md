@@ -40,6 +40,7 @@ Planning docs in [`docs/`](docs/):
 - [`warranty-tracker-architecture.md`](docs/warranty-tracker-architecture.md) — technical architecture
 - [`warranty-tracker-ux-flow.md`](docs/warranty-tracker-ux-flow.md) — screen-by-screen UX flow
 - [`warranty-tracker-mvp-scope.md`](docs/warranty-tracker-mvp-scope.md) — **what's actually in scope for this build** (see its "In Scope" table)
+- [`warranty-tracker-v2-scope.md`](docs/warranty-tracker-v2-scope.md) — draft scope for the next iteration (Gmail integration, Premium, multi-tier alerts), gated on the MVP exit criteria being met
 
 ## Stack
 
