@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 — 2026-09-05
+
+Small post-release fixes and repo hygiene, no user-facing feature changes.
+
+- Added `cmd/demo-data` to seed/reset a realistic demo dataset, replacing ad hoc curl + manual `psql` cleanup that had no safeguard against targeting the wrong database. Refuses to run unless `APP_ENV=development` and only ever touches its own `[DEMO]`-prefixed household.
+- Added ESLint (`eslint-config-expo`) and Prettier to the mobile codebase, wired into CI alongside the existing type-check and test steps.
+
 ## v1.0.0 — 2026-09-05
 
 First public release. Full MVP scope (see [`docs/warranty-tracker-mvp-scope.md`](docs/warranty-tracker-mvp-scope.md)) implemented end-to-end and tested.
