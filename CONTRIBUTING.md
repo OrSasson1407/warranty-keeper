@@ -1,5 +1,7 @@
 # Contributing to WarrantyKeeper
 
+By participating in this project, you're expected to uphold the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Scope
 
 Read [`docs/warranty-tracker-mvp-scope.md`](docs/warranty-tracker-mvp-scope.md) first — its "Out of Scope" table lists things that are intentionally deferred (Gmail integration, web dashboard, billing, multi-tier notifications, repair marketplace, B2B/multi-property, advanced permissions, insurance export, full NLP categorization). PRs for those will likely be declined, not because they're bad ideas but because they're out of scope for now.
