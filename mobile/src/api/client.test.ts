@@ -2,9 +2,10 @@ import { api, ApiError } from './client';
 import { API_BASE_URL } from './config';
 import * as tokenStore from './tokenStore';
 
-// Mocked via an explicit factory (not automock) so the real tokenStore.ts —
-// and therefore its @react-native-async-storage/async-storage import, which
-// has no native module available under plain Jest — never gets evaluated.
+// Mocked with an explicit factory (not automock, which would still evaluate
+// the real module) so each test can control exactly what token is "stored"
+// without touching AsyncStorage at all (see jest.setup.js for the global
+// AsyncStorage mock other tests rely on instead).
 jest.mock('./tokenStore', () => ({
   getAccessToken: jest.fn(),
   getRefreshToken: jest.fn(),
