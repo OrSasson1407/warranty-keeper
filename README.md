@@ -8,7 +8,24 @@
 
 [![repo size](https://img.shields.io/github/repo-size/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper) [![open issues](https://img.shields.io/github/issues/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper/issues) [![open pull requests](https://img.shields.io/github/issues-pr/OrSasson1407/warranty-keeper)](https://github.com/OrSasson1407/warranty-keeper/pulls)
 
-Mobile app for tracking home product purchases, receipts, and warranty expiration dates.
+People lose track of what they own, where the receipt is, and whether a broken product is still covered — and end up paying for a repair or a replacement that would have been free under warranty. WarrantyKeeper fixes that with one habit: photograph a receipt, and the app reads the vendor, date, and price, matches the product's category against a built-in warranty-rules table, and tells you exactly when coverage ends. When something breaks, open the product and see immediately whether it's covered and how to file a claim — manufacturer phone number and claim link included. Built first for the Israeli market (Hebrew UI, local warranty norms), with a household model that lets two people share the same product list.
+
+## Screenshots
+
+<table>
+<tr>
+<td align="center" width="25%"><img src="docs/screenshots/01-onboarding.png" width="180"><br><sub>Onboarding</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/03-dashboard.png" width="180"><br><sub>Dashboard — soonest-to-expire first</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/04-product-detail-green.png" width="180"><br><sub>Product detail — in warranty</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/05-product-detail-expired.png" width="180"><br><sub>Product detail — expired, with a logged claim</sub></td>
+</tr>
+<tr>
+<td align="center" width="25%"><img src="docs/screenshots/06-claim.png" width="180"><br><sub>Warranty claim — manufacturer contact info</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/07-search.png" width="180"><br><sub>Search</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/08-settings.png" width="180"><br><sub>Settings — household &amp; notifications</sub></td>
+<td align="center" width="25%"><img src="docs/screenshots/02-login.png" width="180"><br><sub>Login</sub></td>
+</tr>
+</table>
 
 ## Repo layout
 
