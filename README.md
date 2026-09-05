@@ -1,6 +1,8 @@
 # WarrantyKeeper
 
 [![GitHub repo](https://img.shields.io/badge/GitHub-warranty--keeper-181717?logo=github)](https://github.com/OrSasson1407/warranty-keeper)
+[![Server CI](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/server-ci.yml/badge.svg)](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/server-ci.yml)
+[![Mobile CI](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/mobile-ci.yml/badge.svg)](https://github.com/OrSasson1407/warranty-keeper/actions/workflows/mobile-ci.yml)
 [![codecov](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg)](https://codecov.io/gh/OrSasson1407/warranty-keeper)
 [![server coverage](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg?flag=server)](https://codecov.io/gh/OrSasson1407/warranty-keeper/tree/master/server)
 [![mobile coverage](https://codecov.io/gh/OrSasson1407/warranty-keeper/branch/master/graph/badge.svg?flag=mobile)](https://codecov.io/gh/OrSasson1407/warranty-keeper/tree/master/mobile)
