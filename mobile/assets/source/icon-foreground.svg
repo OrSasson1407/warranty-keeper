@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF2FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Scaled + centered so the whole mark sits inside Android's adaptive-icon safe zone. -->
+  <g transform="translate(512,500) scale(0.44) translate(-512,-500)">
+    <path d="M512 148
+             C 592 148 668 172 668 172
+             L 668 468
+             C 668 656 606 776 512 852
+             C 418 776 356 656 356 468
+             L 356 172
+             C 356 172 432 148 512 148
+             Z"
+          fill="url(#shield)"
+          stroke="#1D4ED8"
+          stroke-width="10"/>
+
+    <path d="M400 500 L 480 588 L 636 392"
+          fill="none"
+          stroke="#2563EB"
+          stroke-width="66"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+  </g>
+</svg>
