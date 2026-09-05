@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What's missing or frustrating today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: >-
+        Please skim the "Out of Scope" table in
+        docs/warranty-tracker-mvp-scope.md first — some ideas (Gmail
+        integration, billing, web dashboard, etc.) are intentionally deferred.
+      options:
+        - label: I checked this isn't already listed as intentionally out of scope
+          required: true

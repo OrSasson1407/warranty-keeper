@@ -136,3 +136,7 @@ All 5 build steps are in place and manually verified end-to-end (backend via cur
 5. Push notifications (device registration + the single 30-day-warning scheduled job)
 
 Not built (intentionally, per mvp-scope doc's Out of Scope table): Gmail integration, web dashboard, Premium/billing, multi-tier notification schedules, repair marketplace, B2B/multi-property, advanced household permissions, insurance export, full NLP categorization.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and PR guidelines.
