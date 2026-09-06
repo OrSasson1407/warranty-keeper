@@ -16,6 +16,7 @@ func clearAllEnv(t *testing.T) {
 		"UPLOADS_DIR", "PUBLIC_BASE_URL", "FIREBASE_CREDENTIALS_FILE",
 		"ANTHROPIC_API_KEY", "ANTHROPIC_OCR_MODEL",
 		"GEMINI_API_KEY", "GEMINI_OCR_MODEL",
+		"GOOGLE_OAUTH_CLIENT_ID",
 	} {
 		t.Setenv(key, "")
 	}
@@ -58,6 +59,9 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.GeminiOCRModel != "gemini-3.6-flash" {
 		t.Errorf("GeminiOCRModel = %q, want the documented default", cfg.GeminiOCRModel)
 	}
+	if cfg.GoogleOAuthClientID != "" {
+		t.Errorf("GoogleOAuthClientID = %q, want empty by default (Google sign-in disabled without one)", cfg.GoogleOAuthClientID)
+	}
 }
 
 func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
@@ -73,6 +77,7 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	t.Setenv("ANTHROPIC_OCR_MODEL", "claude-sonnet-5")
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("GEMINI_OCR_MODEL", "gemini-1.5-pro")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
 
 	cfg := config.Load()
 	if cfg.Port != "9999" {
@@ -107,6 +112,9 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	}
 	if cfg.GeminiOCRModel != "gemini-1.5-pro" {
 		t.Errorf("GeminiOCRModel = %q, want %q", cfg.GeminiOCRModel, "gemini-1.5-pro")
+	}
+	if cfg.GoogleOAuthClientID != "test-client-id.apps.googleusercontent.com" {
+		t.Errorf("GoogleOAuthClientID = %q, want %q", cfg.GoogleOAuthClientID, "test-client-id.apps.googleusercontent.com")
 	}
 }
 

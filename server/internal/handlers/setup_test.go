@@ -56,6 +56,7 @@ type testSetup struct {
 	householdID uuid.UUID
 	token       string
 	storage     *fakeStorage
+	h           *handlers.Handler
 }
 
 func newTestSetup(t *testing.T) *testSetup {
@@ -91,7 +92,7 @@ func newTestSetup(t *testing.T) *testSetup {
 
 	fakeOCRProvider := &fakeOCR{}
 	fakeStorageProvider := &fakeStorage{}
-	h := handlers.New(db, config.Config{JWTSecret: testJWTSecret}, fakeOCRProvider, fakeStorageProvider)
+	h := handlers.New(db, config.Config{JWTSecret: testJWTSecret, GoogleOAuthClientID: "test-google-client-id"}, fakeOCRProvider, fakeStorageProvider)
 
 	router := gin.New()
 	authed := router.Group("/", middleware.RequireAuth(testJWTSecret))
@@ -106,6 +107,8 @@ func newTestSetup(t *testing.T) *testSetup {
 	authed.POST("/products/:id/costs", h.CreateProductCost)
 	authed.GET("/products/:id/costs", h.ListProductCosts)
 	authed.POST("/products/:id/warranty-report", h.ReportWarrantyRule)
+
+	router.POST("/auth/google", h.GoogleLogin)
 	authed.GET("/households/me", h.GetMyHousehold)
 	authed.POST("/households/me/upgrade", h.UpgradeHousehold)
 	authed.GET("/manufacturer-contacts", h.ListManufacturerContacts)
@@ -123,6 +126,7 @@ func newTestSetup(t *testing.T) *testSetup {
 		householdID: household.ID,
 		token:       token,
 		storage:     fakeStorageProvider,
+		h:           h,
 	}
 }
 

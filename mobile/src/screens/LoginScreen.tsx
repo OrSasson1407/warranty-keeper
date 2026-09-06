@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,6 +12,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../context/AuthContext';
+import { extractIdToken, isGoogleSignInConfigured, useGoogleSignIn } from '../auth/googleSignIn';
 import { colors } from '../theme/colors';
 import { ApiError } from '../api/client';
 import type { AuthStackParamList } from '../navigation/types';
@@ -19,11 +20,12 @@ import type { AuthStackParamList } from '../navigation/types';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleRequest, googleResponse, promptGoogleSignIn] = useGoogleSignIn();
 
   const onSubmit = async () => {
     setError(null);
@@ -36,6 +38,17 @@ export default function LoginScreen({ navigation }: Props) {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const idToken = extractIdToken(googleResponse);
+    if (!idToken) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting error/loading state for the async call below, not derived state
+    setError(null);
+    setSubmitting(true);
+    loginWithGoogle(idToken)
+      .catch((e) => setError(e instanceof ApiError ? e.message : 'ההתחברות עם Google נכשלה'))
+      .finally(() => setSubmitting(false));
+  }, [googleResponse, loginWithGoogle]);
 
   return (
     <KeyboardAvoidingView
@@ -70,6 +83,16 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.buttonText}>התחברות</Text>
           )}
         </TouchableOpacity>
+
+        {isGoogleSignInConfigured() ? (
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => promptGoogleSignIn()}
+            disabled={!googleRequest || submitting}
+          >
+            <Text style={styles.googleButtonText}>התחברות עם Google</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}>אין לי חשבון — הרשמה</Text>
@@ -108,5 +131,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
+  googleButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  googleButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
   link: { color: colors.primary, textAlign: 'center', marginTop: 8 },
 });

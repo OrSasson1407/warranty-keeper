@@ -8,7 +8,7 @@ import * as tokenStore from '../api/tokenStore';
 import type { AuthResponse, User } from '../api/types';
 
 jest.mock('../api/client', () => ({
-  api: { register: jest.fn(), login: jest.fn() },
+  api: { register: jest.fn(), login: jest.fn(), loginWithGoogle: jest.fn() },
 }));
 jest.mock('../api/tokenStore', () => ({
   getAccessToken: jest.fn(),
@@ -20,6 +20,7 @@ jest.mock('../api/tokenStore', () => ({
 
 const mockRegister = api.register as jest.Mock;
 const mockLogin = api.login as jest.Mock;
+const mockLoginWithGoogle = api.loginWithGoogle as jest.Mock;
 const mockTokenStore = tokenStore as jest.Mocked<typeof tokenStore>;
 
 const USER_KEY = 'wk_user';
@@ -44,7 +45,7 @@ function authResponse(overrides: Partial<AuthResponse> = {}): AuthResponse {
 }
 
 function TestConsumer() {
-  const { user, isLoading, register, login, logout } = useAuth();
+  const { user, isLoading, register, login, loginWithGoogle, logout } = useAuth();
   return (
     <>
       <Text testID="loading">{String(isLoading)}</Text>
@@ -60,6 +61,12 @@ function TestConsumer() {
         onPress={() => login('a@example.com', 'pw').catch(() => {})}
       >
         <Text>login</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        testID="google-login-btn"
+        onPress={() => loginWithGoogle('fake-id-token').catch(() => {})}
+      >
+        <Text>login with google</Text>
       </TouchableOpacity>
       <TouchableOpacity testID="logout-btn" onPress={() => logout()}>
         <Text>logout</Text>
@@ -164,6 +171,34 @@ describe('login', () => {
     await waitFor(() => expect(screen.getByTestId('user').props.children).toBe('דני כהן'));
     expect(mockLogin).toHaveBeenCalledWith('a@example.com', 'pw');
     expect(mockTokenStore.setTokens).toHaveBeenCalledWith('access-1', 'refresh-1');
+  });
+});
+
+describe('loginWithGoogle', () => {
+  it('persists tokens and the user, and updates context state', async () => {
+    mockLoginWithGoogle.mockResolvedValue(
+      authResponse({ user: testUser({ full_name: 'גוגל משתמש' }) }),
+    );
+    renderProvider();
+    await waitFor(() => expect(screen.getByTestId('loading').props.children).toBe('false'));
+
+    fireEvent.press(screen.getByTestId('google-login-btn'));
+
+    await waitFor(() => expect(screen.getByTestId('user').props.children).toBe('גוגל משתמש'));
+    expect(mockLoginWithGoogle).toHaveBeenCalledWith('fake-id-token');
+    expect(mockTokenStore.setTokens).toHaveBeenCalledWith('access-1', 'refresh-1');
+  });
+
+  it('propagates a rejection without changing state', async () => {
+    mockLoginWithGoogle.mockRejectedValue(new Error('invalid token'));
+    renderProvider();
+    await waitFor(() => expect(screen.getByTestId('loading').props.children).toBe('false'));
+
+    fireEvent.press(screen.getByTestId('google-login-btn'));
+
+    await waitFor(() => expect(mockLoginWithGoogle).toHaveBeenCalled());
+    expect(screen.getByTestId('user').props.children).toBe('none');
+    expect(mockTokenStore.setTokens).not.toHaveBeenCalled();
   });
 });
 

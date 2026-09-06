@@ -77,6 +77,12 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  loginWithGoogle: (idToken: string) =>
+    request<AuthResponse>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ id_token: idToken }),
+    }),
+
   getMyHousehold: () => request<Household>('/households/me'),
 
   upgradeHousehold: () => request<{ tier: string }>('/households/me/upgrade', { method: 'POST' }),

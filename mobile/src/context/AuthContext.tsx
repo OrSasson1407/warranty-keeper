@@ -17,6 +17,7 @@ interface AuthContextValue {
     inviteCode?: string,
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -64,6 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [persist],
   );
 
+  const loginWithGoogle = useCallback(
+    async (idToken: string) => {
+      const res = await api.loginWithGoogle(idToken);
+      await persist(res.access_token, res.refresh_token, res.user);
+    },
+    [persist],
+  );
+
   const logout = useCallback(async () => {
     await tokenStore.clearTokens();
     await AsyncStorage.removeItem(USER_KEY);
@@ -71,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, register, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, register, login, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

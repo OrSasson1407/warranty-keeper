@@ -24,6 +24,7 @@ func NewRouter(h *handlers.Handler) *gin.Engine {
 		auth.POST("/register", h.Register)
 		auth.POST("/login", h.Login)
 		auth.POST("/refresh", h.RefreshToken)
+		auth.POST("/google", h.GoogleLogin)
 	}
 
 	api := router.Group("/", middleware.RequireAuth(h.Cfg.JWTSecret))
