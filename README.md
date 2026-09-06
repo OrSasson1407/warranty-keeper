@@ -92,7 +92,7 @@ Environment variables (see `.env.example`):
 | `UPLOADS_DIR` | Where receipt images are stored locally (default `./data/uploads`) |
 | `PUBLIC_BASE_URL` | Base URL used to build image URLs returned to the client |
 | `GEMINI_API_KEY` | Optional — set to use the free Gemini-based OCR provider instead of the stub (see below). Takes priority over `ANTHROPIC_API_KEY` if both are set |
-| `GEMINI_OCR_MODEL` | OCR model name (default `gemini-2.0-flash`), only used when `GEMINI_API_KEY` is set |
+| `GEMINI_OCR_MODEL` | OCR model name (default `gemini-3.6-flash`), only used when `GEMINI_API_KEY` is set |
 | `ANTHROPIC_API_KEY` | Optional — set to use the Anthropic-based OCR provider instead of the stub (see below) |
 | `ANTHROPIC_OCR_MODEL` | OCR model name (default `claude-haiku-4-5-20251001`), only used when `ANTHROPIC_API_KEY` is set |
 

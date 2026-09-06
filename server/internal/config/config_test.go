@@ -55,7 +55,7 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.GeminiAPIKey != "" {
 		t.Errorf("GeminiAPIKey = %q, want empty by default", cfg.GeminiAPIKey)
 	}
-	if cfg.GeminiOCRModel != "gemini-2.0-flash" {
+	if cfg.GeminiOCRModel != "gemini-3.6-flash" {
 		t.Errorf("GeminiOCRModel = %q, want the documented default", cfg.GeminiOCRModel)
 	}
 }

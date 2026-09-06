@@ -30,7 +30,7 @@ func Load() Config {
 		AnthropicAPIKey:   getEnv("ANTHROPIC_API_KEY", ""),
 		AnthropicOCRModel: getEnv("ANTHROPIC_OCR_MODEL", "claude-haiku-4-5-20251001"),
 		GeminiAPIKey:      getEnv("GEMINI_API_KEY", ""),
-		GeminiOCRModel:    getEnv("GEMINI_OCR_MODEL", "gemini-2.0-flash"),
+		GeminiOCRModel:    getEnv("GEMINI_OCR_MODEL", "gemini-3.6-flash"),
 	}
 }
 
