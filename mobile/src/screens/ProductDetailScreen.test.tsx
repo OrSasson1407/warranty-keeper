@@ -2,8 +2,8 @@ import { Alert, Linking } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import ProductDetailScreen from './ProductDetailScreen';
-import { api } from '../api/client';
-import type { Product, WarrantyClaim } from '../api/types';
+import { api, ApiError } from '../api/client';
+import type { Product, ProductCost, WarrantyClaim } from '../api/types';
 import { addWarrantyExpiryToCalendar } from '../calendar/syncWarrantyEvent';
 import { createMockNavigation, createMockRoute } from '../testUtils/navigation';
 
@@ -16,12 +16,20 @@ jest.mock('@react-navigation/native', () => ({
   },
 }));
 jest.mock('../api/client', () => ({
-  api: { getProduct: jest.fn(), listClaims: jest.fn() },
+  api: {
+    getProduct: jest.fn(),
+    listClaims: jest.fn(),
+    listProductCosts: jest.fn(),
+    createProductCost: jest.fn(),
+  },
+  ApiError: jest.requireActual('../api/client').ApiError,
 }));
 jest.mock('../calendar/syncWarrantyEvent', () => ({ addWarrantyExpiryToCalendar: jest.fn() }));
 
 const mockGetProduct = api.getProduct as jest.Mock;
 const mockListClaims = api.listClaims as jest.Mock;
+const mockListProductCosts = api.listProductCosts as jest.Mock;
+const mockCreateProductCost = api.createProductCost as jest.Mock;
 const mockAddToCalendar = addWarrantyExpiryToCalendar as jest.Mock;
 
 function product(overrides: Partial<Product> = {}): Product {
@@ -44,6 +52,19 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
+function cost(overrides: Partial<ProductCost> = {}): ProductCost {
+  return {
+    id: 'cost1',
+    product_id: 'p1',
+    amount: 200,
+    description: 'תיקון',
+    incurred_at: '2026-03-01',
+    created_at: '2026-03-01',
+    updated_at: '2026-03-01',
+    ...overrides,
+  };
+}
+
 function claim(overrides: Partial<WarrantyClaim> = {}): WarrantyClaim {
   return {
     id: 'c1',
@@ -59,6 +80,8 @@ function claim(overrides: Partial<WarrantyClaim> = {}): WarrantyClaim {
 beforeEach(() => {
   mockGetProduct.mockResolvedValue(product());
   mockListClaims.mockResolvedValue([]);
+  mockListProductCosts.mockResolvedValue([]);
+  mockCreateProductCost.mockResolvedValue(cost());
   mockAddToCalendar.mockResolvedValue(true);
   jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
@@ -83,7 +106,8 @@ describe('ProductDetailScreen', () => {
   it('loads and displays the product name and price', async () => {
     renderScreen();
     expect(await screen.findByText('מזגן טורנדו')).toBeTruthy();
-    expect(screen.getByText(/₪3,200|₪3200/)).toBeTruthy();
+    // Appears twice: once in the purchase meta line, once as the TCO total (no extra costs logged).
+    expect(screen.getAllByText(/₪3,200|₪3200/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('requests the product and its claims using the route param id', () => {
@@ -152,5 +176,86 @@ describe('ProductDetailScreen', () => {
     await waitFor(() =>
       expect(Alert.alert).toHaveBeenCalledWith('לא ניתן להוסיף ליומן', expect.any(String)),
     );
+  });
+
+  it('shows the purchase price as the total when there are no logged costs', async () => {
+    renderScreen(); // default product has price: 3200
+    expect(await screen.findByText('₪3,200')).toBeTruthy();
+    expect(screen.getByText('לא נוספו עלויות נוספות')).toBeTruthy();
+  });
+
+  it('adds the purchase price and every logged cost into the total', async () => {
+    mockListProductCosts.mockResolvedValue([
+      cost({ amount: 200 }),
+      cost({ id: 'cost2', amount: 100 }),
+    ]);
+    renderScreen(); // price 3200 + 200 + 100 = 3500
+
+    expect(await screen.findByText('₪3,500')).toBeTruthy();
+  });
+
+  it('lists each logged cost with its description and amount', async () => {
+    mockListProductCosts.mockResolvedValue([cost({ description: 'תיקון מדחס', amount: 250 })]);
+    renderScreen();
+
+    expect(await screen.findByText(/תיקון מדחס — ₪250/)).toBeTruthy();
+  });
+
+  it('opens and closes the add-cost form via the "+ הוסף עלות" link', async () => {
+    renderScreen();
+    await screen.findByText('עלות בעלות כוללת');
+    expect(screen.queryByPlaceholderText('סכום')).toBeNull();
+
+    fireEvent.press(screen.getByText('+ הוסף עלות'));
+    expect(screen.getByPlaceholderText('סכום')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('ביטול'));
+    expect(screen.queryByPlaceholderText('סכום')).toBeNull();
+  });
+
+  it('rejects an invalid amount without calling the API', async () => {
+    renderScreen();
+    await screen.findByText('עלות בעלות כוללת');
+    fireEvent.press(screen.getByText('+ הוסף עלות'));
+
+    fireEvent.changeText(screen.getByPlaceholderText('סכום'), '0');
+    fireEvent.press(screen.getByText('שמור עלות'));
+
+    expect(Alert.alert).toHaveBeenCalledWith('סכום לא תקין', expect.any(String));
+    expect(mockCreateProductCost).not.toHaveBeenCalled();
+  });
+
+  it('saves a new cost, adds it to the list, and closes the form', async () => {
+    mockCreateProductCost.mockResolvedValue(
+      cost({ id: 'new-cost', amount: 75, description: 'סוללה' }),
+    );
+    renderScreen();
+    await screen.findByText('עלות בעלות כוללת');
+    fireEvent.press(screen.getByText('+ הוסף עלות'));
+
+    fireEvent.changeText(screen.getByPlaceholderText('סכום'), '75');
+    fireEvent.changeText(screen.getByPlaceholderText('תיאור (אופציונלי)'), 'סוללה');
+    fireEvent.press(screen.getByText('שמור עלות'));
+
+    await waitFor(() =>
+      expect(mockCreateProductCost).toHaveBeenCalledWith('p1', {
+        amount: 75,
+        description: 'סוללה',
+      }),
+    );
+    expect(await screen.findByText(/סוללה — ₪75/)).toBeTruthy();
+    expect(screen.queryByPlaceholderText('סכום')).toBeNull();
+  });
+
+  it('shows an error alert when saving a cost fails', async () => {
+    mockCreateProductCost.mockRejectedValue(new ApiError(500, 'שמירה נכשלה'));
+    renderScreen();
+    await screen.findByText('עלות בעלות כוללת');
+    fireEvent.press(screen.getByText('+ הוסף עלות'));
+
+    fireEvent.changeText(screen.getByPlaceholderText('סכום'), '50');
+    fireEvent.press(screen.getByText('שמור עלות'));
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', 'שמירה נכשלה'));
   });
 });

@@ -5,6 +5,7 @@ import type {
   Household,
   ManufacturerContact,
   Product,
+  ProductCost,
   Receipt,
   ReceiptDraft,
   WarrantyClaim,
@@ -135,6 +136,17 @@ export const api = {
     }),
 
   listClaims: (productId: string) => request<WarrantyClaim[]>(`/products/${productId}/claims`),
+
+  createProductCost: (
+    productId: string,
+    payload: { amount: number; description?: string; incurred_at?: string },
+  ) =>
+    request<ProductCost>(`/products/${productId}/costs`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  listProductCosts: (productId: string) => request<ProductCost[]>(`/products/${productId}/costs`),
 
   registerDevice: (expoPushToken: string) =>
     request<{ status: string }>('/devices', {

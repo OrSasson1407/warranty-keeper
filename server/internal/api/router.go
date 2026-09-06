@@ -45,6 +45,8 @@ func NewRouter(h *handlers.Handler) *gin.Engine {
 		api.PUT("/products/:id", h.UpdateProduct)
 		api.POST("/products/:id/claims", h.CreateClaim)
 		api.GET("/products/:id/claims", h.ListClaims)
+		api.POST("/products/:id/costs", h.CreateProductCost)
+		api.GET("/products/:id/costs", h.ListProductCosts)
 	}
 
 	return router

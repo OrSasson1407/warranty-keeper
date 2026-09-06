@@ -82,6 +82,16 @@ export interface ManufacturerContact {
   website: string;
 }
 
+export interface ProductCost {
+  id: string;
+  product_id: string;
+  amount: number;
+  description: string;
+  incurred_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Receipt {
   id: string;
   household_id: string;

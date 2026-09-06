@@ -7,14 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { api } from '../api/client';
-import type { Product, WarrantyClaim } from '../api/types';
+import { api, ApiError } from '../api/client';
+import type { Product, ProductCost, WarrantyClaim } from '../api/types';
 import { addWarrantyExpiryToCalendar } from '../calendar/syncWarrantyEvent';
 import StatusBadge from '../components/StatusBadge';
 import { colors } from '../theme/colors';
@@ -33,15 +34,25 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   const { productId } = route.params;
   const [product, setProduct] = useState<Product | null>(null);
   const [claims, setClaims] = useState<WarrantyClaim[]>([]);
+  const [costs, setCosts] = useState<ProductCost[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingToCalendar, setAddingToCalendar] = useState(false);
+  const [addingCost, setAddingCost] = useState(false);
+  const [savingCost, setSavingCost] = useState(false);
+  const [costAmount, setCostAmount] = useState('');
+  const [costDescription, setCostDescription] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [p, c] = await Promise.all([api.getProduct(productId), api.listClaims(productId)]);
+      const [p, c, tco] = await Promise.all([
+        api.getProduct(productId),
+        api.listClaims(productId),
+        api.listProductCosts(productId),
+      ]);
       setProduct(p);
       setClaims(c);
+      setCosts(tco);
     } finally {
       setLoading(false);
     }
@@ -62,6 +73,31 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   }
 
   const days = daysUntil(product.warranty_expires_at);
+
+  const totalCost = (product.price ?? 0) + costs.reduce((sum, c) => sum + c.amount, 0);
+
+  const onSaveCost = async () => {
+    const amount = Number(costAmount);
+    if (!costAmount || isNaN(amount) || amount <= 0) {
+      Alert.alert('סכום לא תקין', 'נא להזין סכום גדול מ-0');
+      return;
+    }
+    setSavingCost(true);
+    try {
+      const cost = await api.createProductCost(product.id, {
+        amount,
+        description: costDescription.trim() || undefined,
+      });
+      setCosts((prev) => [cost, ...prev]);
+      setCostAmount('');
+      setCostDescription('');
+      setAddingCost(false);
+    } catch (e) {
+      Alert.alert('שגיאה', e instanceof ApiError ? e.message : 'לא הצלחנו לשמור את העלות');
+    } finally {
+      setSavingCost(false);
+    }
+  };
 
   const onAddToCalendar = async () => {
     setAddingToCalendar(true);
@@ -145,6 +181,60 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
           ))
         )}
       </View>
+
+      <View style={styles.claimsLog}>
+        <View style={styles.tcoHeader}>
+          <TouchableOpacity onPress={() => setAddingCost((v) => !v)}>
+            <Text style={styles.addCostLink}>{addingCost ? 'ביטול' : '+ הוסף עלות'}</Text>
+          </TouchableOpacity>
+          <Text style={styles.claimsHeading}>עלות בעלות כוללת</Text>
+        </View>
+        <Text style={styles.tcoTotal}>{`₪${totalCost.toLocaleString()}`}</Text>
+
+        {addingCost ? (
+          <View style={styles.costForm}>
+            <TextInput
+              style={styles.costInput}
+              placeholder="סכום"
+              keyboardType="numeric"
+              value={costAmount}
+              onChangeText={setCostAmount}
+            />
+            <TextInput
+              style={styles.costInput}
+              placeholder="תיאור (אופציונלי)"
+              value={costDescription}
+              onChangeText={setCostDescription}
+            />
+            <TouchableOpacity
+              style={styles.costSaveButton}
+              onPress={onSaveCost}
+              disabled={savingCost}
+            >
+              {savingCost ? (
+                <ActivityIndicator color={colors.primaryText} />
+              ) : (
+                <Text style={styles.costSaveButtonText}>שמור עלות</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {costs.length === 0 ? (
+          <Text style={styles.meta}>
+            {product.price ? 'לא נוספו עלויות נוספות' : 'אין נתוני עלות'}
+          </Text>
+        ) : (
+          costs.map((cost) => (
+            <View key={cost.id} style={styles.claimItem}>
+              <Text style={styles.claimDate}>{formatHebrewDate(cost.incurred_at)}</Text>
+              <Text style={styles.claimDescription}>
+                {cost.description || 'עלות נוספת'} — ₪{cost.amount.toLocaleString()}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -202,4 +292,29 @@ const styles = StyleSheet.create({
   claimDate: { fontSize: 12, color: colors.textMuted, textAlign: 'right' },
   claimDescription: { fontSize: 14, color: colors.text, textAlign: 'right' },
   claimStatus: { fontSize: 12, color: colors.primary, textAlign: 'right', fontWeight: '600' },
+  tcoHeader: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addCostLink: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  tcoTotal: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  costForm: { gap: 8, marginBottom: 4 },
+  costInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    textAlign: 'right',
+  },
+  costSaveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  costSaveButtonText: { color: colors.primaryText, fontWeight: '600', fontSize: 14 },
 });

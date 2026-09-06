@@ -28,5 +28,6 @@ func AutoMigrate(gdb *gorm.DB) error {
 		&models.NotificationLog{},
 		&models.DeviceToken{},
 		&models.ManufacturerContact{},
+		&models.ProductCost{},
 	)
 }
