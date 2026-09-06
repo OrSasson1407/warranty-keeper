@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: warrantykeeper-api
+    env: go
+    rootDir: server
+    plan: free
+    buildCommand: go build -o bin/api ./cmd/api
+    startCommand: ./bin/api
+    preDeployCommand: go run ./cmd/migrate
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GIN_MODE
+        value: release
+      - key: JWT_SECRET
+        generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false

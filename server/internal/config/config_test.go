@@ -17,6 +17,7 @@ func clearAllEnv(t *testing.T) {
 		"ANTHROPIC_API_KEY", "ANTHROPIC_OCR_MODEL",
 		"GEMINI_API_KEY", "GEMINI_OCR_MODEL",
 		"GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY",
+		"RENDER_EXTERNAL_URL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -150,5 +151,26 @@ func TestLoad_ExplicitPublicBaseURLOverridesPortDerivation(t *testing.T) {
 	cfg := config.Load()
 	if cfg.PublicBaseURL != "https://warrantykeeper.example.com" {
 		t.Errorf("PublicBaseURL = %q, want the explicit override, not one derived from PORT", cfg.PublicBaseURL)
+	}
+}
+
+func TestLoad_FallsBackToRenderExternalURLWhenPublicBaseURLNotSet(t *testing.T) {
+	clearAllEnv(t)
+	t.Setenv("RENDER_EXTERNAL_URL", "https://warrantykeeper-api.onrender.com")
+
+	cfg := config.Load()
+	if cfg.PublicBaseURL != "https://warrantykeeper-api.onrender.com" {
+		t.Errorf("PublicBaseURL = %q, want the Render-provided URL used as a fallback", cfg.PublicBaseURL)
+	}
+}
+
+func TestLoad_ExplicitPublicBaseURLOverridesRenderExternalURL(t *testing.T) {
+	clearAllEnv(t)
+	t.Setenv("RENDER_EXTERNAL_URL", "https://warrantykeeper-api.onrender.com")
+	t.Setenv("PUBLIC_BASE_URL", "https://warrantykeeper.example.com")
+
+	cfg := config.Load()
+	if cfg.PublicBaseURL != "https://warrantykeeper.example.com" {
+		t.Errorf("PublicBaseURL = %q, want the explicit override to win over RENDER_EXTERNAL_URL", cfg.PublicBaseURL)
 	}
 }

@@ -28,7 +28,7 @@ func Load() Config {
 		DatabaseURL:             getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5434/warrantykeeper?sslmode=disable"),
 		JWTSecret:               getEnv("JWT_SECRET", "dev-secret-change-me"),
 		UploadsDir:              getEnv("UPLOADS_DIR", "./data/uploads"),
-		PublicBaseURL:           getEnv("PUBLIC_BASE_URL", "http://localhost:"+port),
+		PublicBaseURL:           getEnv("PUBLIC_BASE_URL", getEnv("RENDER_EXTERNAL_URL", "http://localhost:"+port)),
 		FirebaseCredsFile:       getEnv("FIREBASE_CREDENTIALS_FILE", ""),
 		AnthropicAPIKey:         getEnv("ANTHROPIC_API_KEY", ""),
 		AnthropicOCRModel:       getEnv("ANTHROPIC_OCR_MODEL", "claude-haiku-4-5-20251001"),
