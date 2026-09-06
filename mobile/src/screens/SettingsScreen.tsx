@@ -12,23 +12,28 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { api } from '../api/client';
-import type { Household } from '../api/types';
+import { api, ApiError } from '../api/client';
+import type { GmailStatus, Household } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { registerForExpiryPush } from '../notifications/registerPush';
+import { extractAuthCode, extractCodeVerifier, useGmailConnectRequest } from '../auth/gmailConnect';
+import { isGoogleSignInConfigured } from '../auth/googleSignIn';
 import type { AppStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Settings'>;
 
 const PUSH_PREF_KEY = 'wk_push_enabled';
 
-export default function SettingsScreen(_props: Props) {
+export default function SettingsScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
   const [household, setHousehold] = useState<Household | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
+  const [gmailStatus, setGmailStatus] = useState<GmailStatus | null>(null);
+  const [gmailBusy, setGmailBusy] = useState(false);
+  const [gmailRequest, gmailResponse, promptGmailConnect] = useGmailConnectRequest();
 
   useEffect(() => {
     (async () => {
@@ -40,7 +45,43 @@ export default function SettingsScreen(_props: Props) {
       setPushEnabled(pref === 'true');
       setLoading(false);
     })();
+    if (isGoogleSignInConfigured()) {
+      api
+        .gmailStatus()
+        .then(setGmailStatus)
+        .catch(() => {});
+    }
   }, []);
+
+  useEffect(() => {
+    const code = extractAuthCode(gmailResponse);
+    if (!code) return;
+    const codeVerifier = extractCodeVerifier(gmailRequest);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting loading state for the async call below, not derived state
+    setGmailBusy(true);
+    api
+      .connectGmail(code, gmailRequest?.redirectUri ?? '', codeVerifier)
+      .then((status) => {
+        setGmailStatus(status);
+        Alert.alert('Gmail מחובר', 'נסרוק את תיבת הדואר שלכם לאיתור קבלות בזמן הקרוב.');
+      })
+      .catch((e) => {
+        Alert.alert('שגיאה', e instanceof ApiError ? e.message : 'לא הצלחנו לחבר את Gmail');
+      })
+      .finally(() => setGmailBusy(false));
+  }, [gmailResponse, gmailRequest]);
+
+  const onDisconnectGmail = async () => {
+    setGmailBusy(true);
+    try {
+      await api.disconnectGmail();
+      setGmailStatus({ connected: false, last_scan_at: null });
+    } catch {
+      Alert.alert('שגיאה', 'לא הצלחנו לנתק את Gmail כרגע, נסו שוב.');
+    } finally {
+      setGmailBusy(false);
+    }
+  };
 
   const onTogglePush = async (value: boolean) => {
     setPushEnabled(value);
@@ -124,6 +165,52 @@ export default function SettingsScreen(_props: Props) {
         )}
       </View>
 
+      {isGoogleSignInConfigured() ? (
+        <>
+          <Text style={styles.sectionTitle}>ייבוא קבלות מ-Gmail</Text>
+          <View style={styles.card}>
+            <Text style={styles.gmailExplainer}>
+              חיבור אופציונלי: נסרוק אך ורק מיילים מחנויות ידועות (כגון Amazon, KSP, איקאה) לאיתור
+              אישורי הזמנה, ולא ניגע בשאר תיבת הדואר. ניתן לנתק בכל רגע.
+            </Text>
+            {gmailStatus?.connected ? (
+              <>
+                <Text style={styles.memberRow}>מחובר: {gmailStatus.gmail_address}</Text>
+                <TouchableOpacity
+                  style={styles.gmailLink}
+                  onPress={() => navigation.navigate('GmailReceipts')}
+                >
+                  <Text style={styles.inviteButtonText}>צפייה בקבלות שנמצאו</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.disconnectButton}
+                  onPress={onDisconnectGmail}
+                  disabled={gmailBusy}
+                >
+                  {gmailBusy ? (
+                    <ActivityIndicator color={colors.danger} />
+                  ) : (
+                    <Text style={styles.disconnectButtonText}>ניתוק Gmail</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => promptGmailConnect()}
+                disabled={!gmailRequest || gmailBusy}
+              >
+                {gmailBusy ? (
+                  <ActivityIndicator color={colors.primaryText} />
+                ) : (
+                  <Text style={styles.upgradeButtonText}>התחברות ל-Gmail</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </>
+      ) : null}
+
       <Text style={styles.sectionTitle}>התראות</Text>
       <View style={styles.card}>
         <View style={styles.switchRow}>
@@ -167,6 +254,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   upgradeButtonText: { color: colors.primaryText, fontWeight: '600', fontSize: 14 },
+  gmailExplainer: { fontSize: 13, color: colors.textMuted, textAlign: 'right', lineHeight: 18 },
+  gmailLink: { paddingVertical: 4 },
+  disconnectButton: { alignItems: 'center', paddingVertical: 8 },
+  disconnectButtonText: { color: colors.danger, fontWeight: '600', fontSize: 14 },
   switchRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   switchLabel: { fontSize: 15, color: colors.text },
   logoutButton: { marginTop: 32, alignItems: 'center', padding: 12 },

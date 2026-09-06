@@ -89,43 +89,57 @@ func (h *Handler) UploadReceipt(c *gin.Context) {
 	receipt.ParsedVendor = parsed.Vendor
 	receipt.ParsedDate = parsed.Date
 	receipt.ParsedAmount = parsed.Amount
+	receipt.Confidence = parsed.Confidence
 	receipt.Status = status
 	if err := h.DB.Save(&receipt).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save OCR results"})
 		return
 	}
 
-	category := warranty.GuessCategory(parsed.Vendor + " " + parsed.RawText)
-	purchaseDate := time.Now()
-	if parsed.Date != nil {
-		purchaseDate = *parsed.Date
-	}
-
-	resolution, err := warranty.Resolve(h.DB, category, "", purchaseDate)
+	draft, err := h.buildDraftResponse(&receipt)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve warranty period"})
 		return
 	}
+	c.JSON(http.StatusOK, draft)
+}
+
+// buildDraftResponse guesses a category and resolves a warranty expiry from
+// a receipt's already-parsed fields, producing the same draft shape whether
+// the receipt came from a photo upload (UploadReceipt) or a Gmail-matched
+// order email (ListReceipts) -- both route into the same mobile confirm
+// screen either way.
+func (h *Handler) buildDraftResponse(receipt *models.Receipt) (receiptDraftResponse, error) {
+	category := warranty.GuessCategory(receipt.ParsedVendor + " " + receipt.RawOCRText)
+	purchaseDate := receipt.CreatedAt
+	if receipt.ParsedDate != nil {
+		purchaseDate = *receipt.ParsedDate
+	}
+
+	resolution, err := warranty.Resolve(h.DB, category, "", purchaseDate)
+	if err != nil {
+		return receiptDraftResponse{}, err
+	}
 
 	var parsedDateStr *string
-	if parsed.Date != nil {
-		s := parsed.Date.Format("2006-01-02")
+	if receipt.ParsedDate != nil {
+		s := receipt.ParsedDate.Format("2006-01-02")
 		parsedDateStr = &s
 	}
 
-	c.JSON(http.StatusOK, receiptDraftResponse{
+	return receiptDraftResponse{
 		ReceiptID:         receipt.ID.String(),
-		ImageURL:          imageURL,
-		Status:            string(status),
-		ParsedVendor:      parsed.Vendor,
+		ImageURL:          receipt.ImageURL,
+		Status:            string(receipt.Status),
+		ParsedVendor:      receipt.ParsedVendor,
 		ParsedDate:        parsedDateStr,
-		ParsedAmount:      parsed.Amount,
-		RawOCRText:        parsed.RawText,
-		Confidence:        parsed.Confidence,
+		ParsedAmount:      receipt.ParsedAmount,
+		RawOCRText:        receipt.RawOCRText,
+		Confidence:        receipt.Confidence,
 		SuggestedCategory: category,
 		WarrantyExpiresAt: resolution.ExpiresAt.Format("2006-01-02"),
 		WarrantyUncertain: resolution.Uncertain,
-	})
+	}, nil
 }
 
 func (h *Handler) GetReceipt(c *gin.Context) {
@@ -135,6 +149,38 @@ func (h *Handler) GetReceipt(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, receipt)
+}
+
+// ListReceipts supports the Gmail-import review flow: since Gmail-sourced
+// receipts are created asynchronously by the background scan (there's no
+// request/response cycle to hand a draft back on, unlike a photo upload),
+// the mobile app polls this list to discover ones awaiting confirmation.
+// Optional status/source query params narrow the list; both flows share it.
+func (h *Handler) ListReceipts(c *gin.Context) {
+	query := h.DB.Where("household_id = ?", householdID(c))
+	if status := c.Query("status"); status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if source := c.Query("source"); source != "" {
+		query = query.Where("source = ?", source)
+	}
+
+	var receipts []models.Receipt
+	if err := query.Order("created_at desc").Find(&receipts).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list receipts"})
+		return
+	}
+
+	drafts := make([]receiptDraftResponse, 0, len(receipts))
+	for i := range receipts {
+		draft, err := h.buildDraftResponse(&receipts[i])
+		if err != nil {
+			log.Printf("failed to build draft for receipt %s: %v", receipts[i].ID, err)
+			continue
+		}
+		drafts = append(drafts, draft)
+	}
+	c.JSON(http.StatusOK, drafts)
 }
 
 func fileExtension(filename string) string {

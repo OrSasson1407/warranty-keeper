@@ -15,6 +15,7 @@ import ProductDetailScreen from '../screens/ProductDetailScreen';
 import ClaimScreen from '../screens/ClaimScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import GmailReceiptsScreen from '../screens/GmailReceiptsScreen';
 
 import type { AppStackParamList, AuthStackParamList } from './types';
 
@@ -65,6 +66,11 @@ function AppNavigator() {
       <AppStack.Screen name="Claim" component={ClaimScreen} options={{ title: 'תביעת אחריות' }} />
       <AppStack.Screen name="Search" component={SearchScreen} options={{ title: 'חיפוש' }} />
       <AppStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'הגדרות' }} />
+      <AppStack.Screen
+        name="GmailReceipts"
+        component={GmailReceiptsScreen}
+        options={{ title: 'קבלות מ-Gmail' }}
+      />
     </AppStack.Navigator>
   );
 }

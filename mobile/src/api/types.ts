@@ -105,6 +105,12 @@ export interface Receipt {
   updated_at: string;
 }
 
+export interface GmailStatus {
+  connected: boolean;
+  gmail_address?: string;
+  last_scan_at: string | null;
+}
+
 export interface ApiError {
   error: string;
 }

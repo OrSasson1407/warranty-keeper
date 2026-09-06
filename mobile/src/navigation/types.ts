@@ -14,4 +14,5 @@ export type AppStackParamList = {
   Claim: { productId: string };
   Search: undefined;
   Settings: undefined;
+  GmailReceipts: undefined;
 };

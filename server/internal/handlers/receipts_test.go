@@ -152,6 +152,64 @@ func TestUploadReceipt_RequiresAuth(t *testing.T) {
 	}
 }
 
+func TestListReceipts_FiltersByStatusAndSourceAndScopesToHousehold(t *testing.T) {
+	s := newTestSetup(t)
+	pendingGmail := models.Receipt{HouseholdID: s.householdID, Status: models.ReceiptStatusPending, Source: models.ReceiptSourceGmail, ParsedVendor: "Amazon", GmailMessageID: "msg-1"}
+	processedPhoto := models.Receipt{HouseholdID: s.householdID, Status: models.ReceiptStatusProcessed, Source: models.ReceiptSourcePhoto}
+	if err := s.db.Create(&pendingGmail).Error; err != nil {
+		t.Fatalf("failed to seed pending gmail receipt: %v", err)
+	}
+	if err := s.db.Create(&processedPhoto).Error; err != nil {
+		t.Fatalf("failed to seed processed photo receipt: %v", err)
+	}
+
+	otherToken, otherHousehold := s.createOtherHousehold(t)
+	otherReceipt := models.Receipt{HouseholdID: otherHousehold, Status: models.ReceiptStatusPending, Source: models.ReceiptSourceGmail, GmailMessageID: "msg-2"}
+	if err := s.db.Create(&otherReceipt).Error; err != nil {
+		t.Fatalf("failed to seed other household's receipt: %v", err)
+	}
+
+	rec := doJSONAs(t, s.router, http.MethodGet, "/receipts?status=pending&source=gmail", s.token, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var drafts []receiptDraft
+	decodeJSON(t, rec, &drafts)
+	if len(drafts) != 1 {
+		t.Fatalf("expected exactly one matching receipt, got %d", len(drafts))
+	}
+	if drafts[0].ReceiptID != pendingGmail.ID.String() {
+		t.Errorf("ReceiptID = %q, want the seeded pending gmail receipt %q", drafts[0].ReceiptID, pendingGmail.ID.String())
+	}
+
+	otherRec := doJSONAs(t, s.router, http.MethodGet, "/receipts?status=pending&source=gmail", otherToken, nil)
+	var otherDrafts []receiptDraft
+	decodeJSON(t, otherRec, &otherDrafts)
+	if len(otherDrafts) != 1 || otherDrafts[0].ReceiptID != otherReceipt.ID.String() {
+		t.Errorf("expected the other household to only see its own receipt, got %+v", otherDrafts)
+	}
+}
+
+func TestListReceipts_NoFiltersReturnsAllForHousehold(t *testing.T) {
+	s := newTestSetup(t)
+	if err := s.db.Create(&models.Receipt{HouseholdID: s.householdID, Status: models.ReceiptStatusPending, Source: models.ReceiptSourcePhoto}).Error; err != nil {
+		t.Fatalf("failed to seed receipt: %v", err)
+	}
+	if err := s.db.Create(&models.Receipt{HouseholdID: s.householdID, Status: models.ReceiptStatusProcessed, Source: models.ReceiptSourceGmail, GmailMessageID: "msg-3"}).Error; err != nil {
+		t.Fatalf("failed to seed receipt: %v", err)
+	}
+
+	rec := doJSONAs(t, s.router, http.MethodGet, "/receipts", s.token, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	var drafts []receiptDraft
+	decodeJSON(t, rec, &drafts)
+	if len(drafts) != 2 {
+		t.Errorf("expected both receipts with no filters applied, got %d", len(drafts))
+	}
+}
+
 func TestGetReceipt_ScopedToHousehold(t *testing.T) {
 	s := newTestSetup(t)
 	receipt := models.Receipt{HouseholdID: s.householdID, ImageURL: "https://fake-storage.test/x.jpg"}

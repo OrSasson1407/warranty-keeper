@@ -2,6 +2,7 @@ import { API_BASE_URL } from './config';
 import * as tokenStore from './tokenStore';
 import type {
   AuthResponse,
+  GmailStatus,
   Household,
   ManufacturerContact,
   Product,
@@ -93,6 +94,25 @@ export const api = {
     form.append('image', file as unknown as Blob);
     return request<ReceiptDraft>('/receipts', { method: 'POST', body: form });
   },
+
+  listReceipts: (params?: { status?: string; source?: string }) => {
+    const search = new URLSearchParams();
+    if (params?.status) search.set('status', params.status);
+    if (params?.source) search.set('source', params.source);
+    const qs = search.toString();
+    return request<ReceiptDraft[]>(`/receipts${qs ? `?${qs}` : ''}`);
+  },
+
+  connectGmail: (code: string, redirectUri: string, codeVerifier: string | null) =>
+    request<GmailStatus>('/gmail/connect', {
+      method: 'POST',
+      body: JSON.stringify({ code, redirect_uri: redirectUri, code_verifier: codeVerifier }),
+    }),
+
+  gmailStatus: () => request<GmailStatus>('/gmail/status'),
+
+  disconnectGmail: () =>
+    request<{ disconnected: boolean }>('/gmail/disconnect', { method: 'DELETE' }),
 
   resolveWarranty: (category: string, brand: string, purchaseDate: string) => {
     const params = new URLSearchParams({ category, brand, purchase_date: purchaseDate });

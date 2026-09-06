@@ -77,6 +77,7 @@ func newTestSetup(t *testing.T) *testSetup {
 		&models.Household{}, &models.User{}, &models.Product{},
 		&models.Receipt{}, &models.WarrantyRule{}, &models.WarrantyClaim{},
 		&models.ManufacturerContact{}, &models.ProductCost{}, &models.WarrantyRuleReport{},
+		&models.GmailConnection{},
 	); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
@@ -92,7 +93,12 @@ func newTestSetup(t *testing.T) *testSetup {
 
 	fakeOCRProvider := &fakeOCR{}
 	fakeStorageProvider := &fakeStorage{}
-	h := handlers.New(db, config.Config{JWTSecret: testJWTSecret, GoogleOAuthClientID: "test-google-client-id"}, fakeOCRProvider, fakeStorageProvider)
+	h := handlers.New(db, config.Config{
+		JWTSecret:               testJWTSecret,
+		GoogleOAuthClientID:     "test-google-client-id",
+		GoogleOAuthClientSecret: "test-google-client-secret",
+		TokenEncryptionKey:      "test-token-encryption-key",
+	}, fakeOCRProvider, fakeStorageProvider)
 
 	router := gin.New()
 	authed := router.Group("/", middleware.RequireAuth(testJWTSecret))
@@ -101,7 +107,11 @@ func newTestSetup(t *testing.T) *testSetup {
 	authed.GET("/products/:id", h.GetProduct)
 	authed.PUT("/products/:id", h.UpdateProduct)
 	authed.POST("/receipts", h.UploadReceipt)
+	authed.GET("/receipts", h.ListReceipts)
 	authed.GET("/receipts/:id", h.GetReceipt)
+	authed.POST("/gmail/connect", h.ConnectGmail)
+	authed.GET("/gmail/status", h.GmailStatus)
+	authed.DELETE("/gmail/disconnect", h.DisconnectGmail)
 	authed.POST("/products/:id/claims", h.CreateClaim)
 	authed.GET("/products/:id/claims", h.ListClaims)
 	authed.POST("/products/:id/costs", h.CreateProductCost)

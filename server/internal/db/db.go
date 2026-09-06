@@ -30,5 +30,6 @@ func AutoMigrate(gdb *gorm.DB) error {
 		&models.ManufacturerContact{},
 		&models.ProductCost{},
 		&models.WarrantyRuleReport{},
+		&models.GmailConnection{},
 	)
 }

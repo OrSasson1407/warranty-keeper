@@ -35,7 +35,12 @@ func NewRouter(h *handlers.Handler) *gin.Engine {
 
 		receipts := api.Group("/receipts", authLimiter)
 		receipts.POST("", h.UploadReceipt)
+		api.GET("/receipts", h.ListReceipts)
 		api.GET("/receipts/:id", h.GetReceipt)
+
+		api.POST("/gmail/connect", h.ConnectGmail)
+		api.GET("/gmail/status", h.GmailStatus)
+		api.DELETE("/gmail/disconnect", h.DisconnectGmail)
 
 		api.GET("/warranty-rules/resolve", h.ResolveWarranty)
 		api.GET("/manufacturer-contacts", h.ListManufacturerContacts)

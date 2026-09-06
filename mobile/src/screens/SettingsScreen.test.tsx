@@ -4,21 +4,49 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 
 import SettingsScreen from './SettingsScreen';
 import { api } from '../api/client';
-import type { Household } from '../api/types';
+import type { GmailStatus, Household } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { registerForExpiryPush } from '../notifications/registerPush';
+import { extractAuthCode, extractCodeVerifier, useGmailConnectRequest } from '../auth/gmailConnect';
+import { isGoogleSignInConfigured } from '../auth/googleSignIn';
 import { createMockNavigation } from '../testUtils/navigation';
 
 jest.mock('../context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../api/client', () => ({
-  api: { getMyHousehold: jest.fn(), upgradeHousehold: jest.fn() },
+  api: {
+    getMyHousehold: jest.fn(),
+    upgradeHousehold: jest.fn(),
+    gmailStatus: jest.fn(),
+    connectGmail: jest.fn(),
+    disconnectGmail: jest.fn(),
+  },
+  ApiError: jest.requireActual('../api/client').ApiError,
 }));
 jest.mock('../notifications/registerPush', () => ({ registerForExpiryPush: jest.fn() }));
+jest.mock('../auth/gmailConnect', () => ({
+  useGmailConnectRequest: jest.fn(),
+  extractAuthCode: jest.fn(),
+  extractCodeVerifier: jest.fn(),
+}));
+jest.mock('../auth/googleSignIn', () => ({ isGoogleSignInConfigured: jest.fn() }));
 
 const mockUseAuth = useAuth as jest.Mock;
 const mockGetMyHousehold = api.getMyHousehold as jest.Mock;
 const mockUpgradeHousehold = api.upgradeHousehold as jest.Mock;
 const mockRegisterForExpiryPush = registerForExpiryPush as jest.Mock;
+const mockGmailStatus = api.gmailStatus as jest.Mock;
+const mockConnectGmail = api.connectGmail as jest.Mock;
+const mockDisconnectGmail = api.disconnectGmail as jest.Mock;
+const mockUseGmailConnectRequest = useGmailConnectRequest as jest.Mock;
+const mockExtractAuthCode = extractAuthCode as jest.Mock;
+const mockExtractCodeVerifier = extractCodeVerifier as jest.Mock;
+const mockIsGoogleSignInConfigured = isGoogleSignInConfigured as jest.Mock;
+
+const mockPromptGmailConnect = jest.fn();
+
+function gmailStatus(overrides: Partial<GmailStatus> = {}): GmailStatus {
+  return { connected: false, last_scan_at: null, ...overrides };
+}
 
 function household(overrides: Partial<Household> = {}): Household {
   return {
@@ -37,6 +65,11 @@ beforeEach(async () => {
   mockGetMyHousehold.mockResolvedValue(household());
   mockUpgradeHousehold.mockResolvedValue({ tier: 'premium' });
   mockRegisterForExpiryPush.mockResolvedValue(true);
+  mockGmailStatus.mockResolvedValue(gmailStatus());
+  mockUseGmailConnectRequest.mockReturnValue([{ some: 'request' }, null, mockPromptGmailConnect]);
+  mockExtractAuthCode.mockReturnValue(null);
+  mockExtractCodeVerifier.mockReturnValue(null);
+  mockIsGoogleSignInConfigured.mockReturnValue(true);
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction } as any);
 });
@@ -154,6 +187,95 @@ describe('SettingsScreen', () => {
 
     await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', expect.any(String)));
     expect(screen.getByText('תוכנית חינמית — עד 20 מוצרים')).toBeTruthy();
+  });
+
+  it('hides the Gmail section entirely when Google sign-in is not configured', async () => {
+    mockIsGoogleSignInConfigured.mockReturnValue(false);
+    renderScreen();
+    await screen.findByText('משק בית: "הבית של מיכל כהן"');
+    expect(screen.queryByText('ייבוא קבלות מ-Gmail')).toBeNull();
+  });
+
+  it('shows a connect button when Gmail is not connected', async () => {
+    renderScreen();
+    expect(await screen.findByText('התחברות ל-Gmail')).toBeTruthy();
+  });
+
+  it('shows the connected address and a disconnect button once connected', async () => {
+    mockGmailStatus.mockResolvedValue(
+      gmailStatus({ connected: true, gmail_address: 'me@gmail.com' }),
+    );
+    renderScreen();
+    expect(await screen.findByText('מחובר: me@gmail.com')).toBeTruthy();
+    expect(screen.getByText('ניתוק Gmail')).toBeTruthy();
+    expect(screen.queryByText('התחברות ל-Gmail')).toBeNull();
+  });
+
+  it('prompts the Gmail connect flow when the connect button is pressed', async () => {
+    renderScreen();
+    fireEvent.press(await screen.findByText('התחברות ל-Gmail'));
+    expect(mockPromptGmailConnect).toHaveBeenCalled();
+  });
+
+  it('connects Gmail once the OAuth response yields a code', async () => {
+    mockExtractAuthCode.mockReturnValue('auth-code-1');
+    mockExtractCodeVerifier.mockReturnValue('verifier-1');
+    mockUseGmailConnectRequest.mockReturnValue([
+      { redirectUri: 'http://localhost:8081' },
+      { type: 'success', params: { code: 'auth-code-1' } },
+      mockPromptGmailConnect,
+    ]);
+    mockConnectGmail.mockResolvedValue(
+      gmailStatus({ connected: true, gmail_address: 'me@gmail.com' }),
+    );
+
+    renderScreen();
+
+    await waitFor(() =>
+      expect(mockConnectGmail).toHaveBeenCalledWith(
+        'auth-code-1',
+        'http://localhost:8081',
+        'verifier-1',
+      ),
+    );
+    expect(await screen.findByText('מחובר: me@gmail.com')).toBeTruthy();
+  });
+
+  it('shows an error when connecting Gmail fails', async () => {
+    mockExtractAuthCode.mockReturnValue('auth-code-1');
+    mockUseGmailConnectRequest.mockReturnValue([
+      { redirectUri: 'http://localhost:8081' },
+      { type: 'success', params: { code: 'auth-code-1' } },
+      mockPromptGmailConnect,
+    ]);
+    mockConnectGmail.mockRejectedValue(new Error('network error'));
+
+    renderScreen();
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', expect.any(String)));
+  });
+
+  it('disconnects Gmail when the disconnect button is pressed', async () => {
+    mockGmailStatus.mockResolvedValue(
+      gmailStatus({ connected: true, gmail_address: 'me@gmail.com' }),
+    );
+    mockDisconnectGmail.mockResolvedValue({ disconnected: true });
+    renderScreen();
+
+    fireEvent.press(await screen.findByText('ניתוק Gmail'));
+
+    await waitFor(() => expect(mockDisconnectGmail).toHaveBeenCalled());
+    expect(await screen.findByText('התחברות ל-Gmail')).toBeTruthy();
+  });
+
+  it('navigates to GmailReceipts when "צפייה בקבלות שנמצאו" is pressed', async () => {
+    mockGmailStatus.mockResolvedValue(
+      gmailStatus({ connected: true, gmail_address: 'me@gmail.com' }),
+    );
+    const navigation = renderScreen();
+
+    fireEvent.press(await screen.findByText('צפייה בקבלות שנמצאו'));
+    expect(navigation.navigate).toHaveBeenCalledWith('GmailReceipts');
   });
 
   it('calls logout when the logout button is pressed', async () => {

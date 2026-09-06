@@ -16,7 +16,7 @@ func clearAllEnv(t *testing.T) {
 		"UPLOADS_DIR", "PUBLIC_BASE_URL", "FIREBASE_CREDENTIALS_FILE",
 		"ANTHROPIC_API_KEY", "ANTHROPIC_OCR_MODEL",
 		"GEMINI_API_KEY", "GEMINI_OCR_MODEL",
-		"GOOGLE_OAUTH_CLIENT_ID",
+		"GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY",
 	} {
 		t.Setenv(key, "")
 	}
@@ -62,6 +62,12 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.GoogleOAuthClientID != "" {
 		t.Errorf("GoogleOAuthClientID = %q, want empty by default (Google sign-in disabled without one)", cfg.GoogleOAuthClientID)
 	}
+	if cfg.GoogleOAuthClientSecret != "" {
+		t.Errorf("GoogleOAuthClientSecret = %q, want empty by default", cfg.GoogleOAuthClientSecret)
+	}
+	if cfg.TokenEncryptionKey != "" {
+		t.Errorf("TokenEncryptionKey = %q, want empty by default", cfg.TokenEncryptionKey)
+	}
 }
 
 func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
@@ -78,6 +84,8 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
 	t.Setenv("GEMINI_OCR_MODEL", "gemini-1.5-pro")
 	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
+	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-client-secret")
+	t.Setenv("TOKEN_ENCRYPTION_KEY", "test-encryption-key")
 
 	cfg := config.Load()
 	if cfg.Port != "9999" {
@@ -115,6 +123,12 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	}
 	if cfg.GoogleOAuthClientID != "test-client-id.apps.googleusercontent.com" {
 		t.Errorf("GoogleOAuthClientID = %q, want %q", cfg.GoogleOAuthClientID, "test-client-id.apps.googleusercontent.com")
+	}
+	if cfg.GoogleOAuthClientSecret != "test-client-secret" {
+		t.Errorf("GoogleOAuthClientSecret = %q, want %q", cfg.GoogleOAuthClientSecret, "test-client-secret")
+	}
+	if cfg.TokenEncryptionKey != "test-encryption-key" {
+		t.Errorf("TokenEncryptionKey = %q, want %q", cfg.TokenEncryptionKey, "test-encryption-key")
 	}
 }
 

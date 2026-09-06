@@ -204,3 +204,63 @@ describe('uploadReceipt', () => {
     expect(options.headers['Content-Type']).toBeUndefined();
   });
 });
+
+describe('listReceipts', () => {
+  it('sends status and source as query params when given', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, []));
+    await api.listReceipts({ status: 'pending', source: 'gmail' });
+
+    const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    const parsed = new URL(url);
+    expect(parsed.pathname).toBe('/receipts');
+    expect(parsed.searchParams.get('status')).toBe('pending');
+    expect(parsed.searchParams.get('source')).toBe('gmail');
+  });
+
+  it('omits the query string entirely when called with no params', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, []));
+    await api.listReceipts();
+
+    const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`${API_BASE_URL}/receipts`);
+  });
+});
+
+describe('connectGmail', () => {
+  it('POSTs the code, redirect_uri, and code_verifier', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      jsonResponse(200, { connected: true, gmail_address: 'me@gmail.com', last_scan_at: null }),
+    );
+    await api.connectGmail('code-1', 'http://localhost:8081', 'verifier-1');
+
+    const [url, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`${API_BASE_URL}/gmail/connect`);
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toEqual({
+      code: 'code-1',
+      redirect_uri: 'http://localhost:8081',
+      code_verifier: 'verifier-1',
+    });
+  });
+});
+
+describe('gmailStatus and disconnectGmail', () => {
+  it('gmailStatus GETs the status endpoint', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      jsonResponse(200, { connected: false, last_scan_at: null }),
+    );
+    await api.gmailStatus();
+    const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`${API_BASE_URL}/gmail/status`);
+  });
+
+  it('disconnectGmail sends a DELETE request', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+      jsonResponse(200, { disconnected: true }),
+    );
+    await api.disconnectGmail();
+    const [url, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`${API_BASE_URL}/gmail/disconnect`);
+    expect(options.method).toBe('DELETE');
+  });
+});
