@@ -91,6 +91,8 @@ Environment variables (see `.env.example`):
 | `JWT_SECRET` | Signing secret for access/refresh tokens |
 | `UPLOADS_DIR` | Where receipt images are stored locally (default `./data/uploads`) |
 | `PUBLIC_BASE_URL` | Base URL used to build image URLs returned to the client |
+| `ANTHROPIC_API_KEY` | Optional — set to use the real Anthropic-based OCR provider instead of the stub (see below) |
+| `ANTHROPIC_OCR_MODEL` | OCR model name (default `claude-haiku-4-5-20251001`), only used when `ANTHROPIC_API_KEY` is set |
 
 ### Useful commands
 
@@ -103,7 +105,7 @@ Environment variables (see `.env.example`):
 
 ### Swapping stubs for the real thing later
 
-- **OCR**: implement `internal/ocr.Provider` for Google Vision/Textract and wire it in `cmd/api/main.go` instead of `ocr.NewStubProvider()`.
+- **OCR**: done — `internal/ocr.AnthropicProvider` implements `Provider` using a vision-capable Claude model; set `ANTHROPIC_API_KEY` to switch `cmd/api/main.go` from `ocr.NewStubProvider()` to it automatically. (A traditional OCR API like Google Vision/Textract is also a valid `Provider` implementation if preferred.)
 - **Object storage**: implement `internal/storage.Store` for S3 and swap `storage.NewLocalStore(...)`.
 - **Push**: switch `notify.NewLogSender()` to `notify.NewExpoSender()` in `cmd/notify-expiring/main.go` once you're ready to actually deliver (no credentials needed for Expo's push service).
 

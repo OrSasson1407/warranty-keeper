@@ -30,7 +30,11 @@ func main() {
 		log.Fatalf("failed to initialize storage: %v", err)
 	}
 
-	ocrProvider := ocr.NewStubProvider()
+	var ocrProvider ocr.Provider = ocr.NewStubProvider()
+	if cfg.AnthropicAPIKey != "" {
+		ocrProvider = ocr.NewAnthropicProvider(cfg.AnthropicAPIKey, cfg.AnthropicOCRModel)
+		log.Printf("using Anthropic OCR provider (model=%s)", cfg.AnthropicOCRModel)
+	}
 
 	h := handlers.New(gdb, cfg, ocrProvider, store)
 	router := api.NewRouter(h)

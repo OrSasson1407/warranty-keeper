@@ -14,6 +14,7 @@ func clearAllEnv(t *testing.T) {
 	for _, key := range []string{
 		"PORT", "APP_ENV", "DATABASE_URL", "JWT_SECRET",
 		"UPLOADS_DIR", "PUBLIC_BASE_URL", "FIREBASE_CREDENTIALS_FILE",
+		"ANTHROPIC_API_KEY", "ANTHROPIC_OCR_MODEL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -44,6 +45,12 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.FirebaseCredsFile != "" {
 		t.Errorf("FirebaseCredsFile = %q, want empty by default", cfg.FirebaseCredsFile)
 	}
+	if cfg.AnthropicAPIKey != "" {
+		t.Errorf("AnthropicAPIKey = %q, want empty by default (no real OCR provider without one)", cfg.AnthropicAPIKey)
+	}
+	if cfg.AnthropicOCRModel != "claude-haiku-4-5-20251001" {
+		t.Errorf("AnthropicOCRModel = %q, want the documented default", cfg.AnthropicOCRModel)
+	}
 }
 
 func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
@@ -55,6 +62,8 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	t.Setenv("UPLOADS_DIR", "/data/uploads")
 	t.Setenv("PUBLIC_BASE_URL", "https://api.example.com")
 	t.Setenv("FIREBASE_CREDENTIALS_FILE", "/etc/firebase.json")
+	t.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+	t.Setenv("ANTHROPIC_OCR_MODEL", "claude-sonnet-5")
 
 	cfg := config.Load()
 	if cfg.Port != "9999" {
@@ -77,6 +86,12 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	}
 	if cfg.FirebaseCredsFile != "/etc/firebase.json" {
 		t.Errorf("FirebaseCredsFile = %q, want %q", cfg.FirebaseCredsFile, "/etc/firebase.json")
+	}
+	if cfg.AnthropicAPIKey != "sk-ant-test" {
+		t.Errorf("AnthropicAPIKey = %q, want %q", cfg.AnthropicAPIKey, "sk-ant-test")
+	}
+	if cfg.AnthropicOCRModel != "claude-sonnet-5" {
+		t.Errorf("AnthropicOCRModel = %q, want %q", cfg.AnthropicOCRModel, "claude-sonnet-5")
 	}
 }
 
