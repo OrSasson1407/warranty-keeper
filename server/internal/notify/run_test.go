@@ -187,6 +187,7 @@ func TestRunExpiryCheck_SkipsUserAlreadyNotifiedForThisProduct(t *testing.T) {
 	existing := models.NotificationLog{
 		UserID: user.ID, ProductID: product.ID,
 		Type: models.NotificationTypeExpiryWarning, SentAt: now.AddDate(0, 0, -1),
+		WarningDays: notify.DefaultWarningDays,
 	}
 	if err := db.Create(&existing).Error; err != nil {
 		t.Fatalf("failed to seed existing notification log: %v", err)
@@ -326,5 +327,143 @@ func TestRunExpiryCheck_NoProductsReturnsZeroes(t *testing.T) {
 	}
 	if checked != 0 || sent != 0 {
 		t.Errorf("checked=%d sent=%d, want 0 and 0 on an empty database", checked, sent)
+	}
+}
+
+func TestRunMultiTierExpiryCheck_NotifiesIndependentlyAtEachTier(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "token-a")
+
+	// One product per tier, each expiring in exactly that many days.
+	p30 := seedProduct(t, db, user.HouseholdID, "פג בעוד 30", now.AddDate(0, 0, 30))
+	p14 := seedProduct(t, db, user.HouseholdID, "פג בעוד 14", now.AddDate(0, 0, 14))
+	p3 := seedProduct(t, db, user.HouseholdID, "פג בעוד 3", now.AddDate(0, 0, 3))
+
+	sender := &fakeSender{}
+	checked, sent, err := notify.RunMultiTierExpiryCheck(db, sender, []int{30, 14, 3}, now)
+	if err != nil {
+		t.Fatalf("RunMultiTierExpiryCheck returned error: %v", err)
+	}
+	if checked != 3 {
+		t.Errorf("checked = %d, want 3 (one product found per tier)", checked)
+	}
+	if sent != 3 {
+		t.Errorf("sent = %d, want 3 (one notification per tier)", sent)
+	}
+	if len(sender.calls) != 3 {
+		t.Fatalf("got %d Send calls, want 3", len(sender.calls))
+	}
+
+	for _, p := range []struct {
+		product models.Product
+		days    int
+	}{{p30, 30}, {p14, 14}, {p3, 3}} {
+		var logEntry models.NotificationLog
+		if err := db.Where("product_id = ?", p.product.ID).First(&logEntry).Error; err != nil {
+			t.Fatalf("expected a notification_log row for %s: %v", p.product.Name, err)
+		}
+		if logEntry.WarningDays != p.days {
+			t.Errorf("WarningDays for %s = %d, want %d", p.product.Name, logEntry.WarningDays, p.days)
+		}
+	}
+}
+
+func TestRunMultiTierExpiryCheck_SameProductNotifiedAtMultipleTiersOverTime(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "token-a")
+	product := seedProduct(t, db, user.HouseholdID, "מזגן", now.AddDate(0, 0, 30))
+
+	sender := &fakeSender{}
+	// First run: only the 30-day tier matches.
+	_, sent, err := notify.RunMultiTierExpiryCheck(db, sender, []int{30, 14, 3}, now)
+	if err != nil {
+		t.Fatalf("first run returned error: %v", err)
+	}
+	if sent != 1 {
+		t.Fatalf("first run sent = %d, want 1", sent)
+	}
+
+	// 16 days later, the same product is now exactly 14 days out.
+	later := now.AddDate(0, 0, 16)
+	_, sent, err = notify.RunMultiTierExpiryCheck(db, sender, []int{30, 14, 3}, later)
+	if err != nil {
+		t.Fatalf("second run returned error: %v", err)
+	}
+	if sent != 1 {
+		t.Errorf("second run sent = %d, want 1 (the 14-day tier is a separate notification)", sent)
+	}
+
+	var logCount int64
+	db.Model(&models.NotificationLog{}).Where("product_id = ?", product.ID).Count(&logCount)
+	if logCount != 2 {
+		t.Errorf("notification_log rows = %d, want 2 (one per tier, not deduped against each other)", logCount)
+	}
+}
+
+func TestRunAnnualSummary_NotifiesUserWithExpiredProductsInThePastYear(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "token-a")
+	seedProduct(t, db, user.HouseholdID, "פג לפני 3 חודשים", now.AddDate(0, -3, 0))
+	seedProduct(t, db, user.HouseholdID, "פג לפני שנתיים", now.AddDate(-2, 0, 0)) // outside the 12-month window
+
+	sender := &fakeSender{}
+	usersNotified, err := notify.RunAnnualSummary(db, sender, now)
+	if err != nil {
+		t.Fatalf("RunAnnualSummary returned error: %v", err)
+	}
+	if usersNotified != 1 {
+		t.Errorf("usersNotified = %d, want 1", usersNotified)
+	}
+	if len(sender.calls) != 1 {
+		t.Fatalf("got %d Send calls, want 1", len(sender.calls))
+	}
+	if !strings.Contains(sender.calls[0].Body, "1") {
+		t.Errorf("summary body = %q, want it to mention exactly 1 expired product (the 2-year-old one is out of window)", sender.calls[0].Body)
+	}
+}
+
+func TestRunAnnualSummary_SkipsUserWithNoExpiredProducts(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "token-a")
+	seedProduct(t, db, user.HouseholdID, "עדיין באחריות", now.AddDate(1, 0, 0))
+
+	sender := &fakeSender{}
+	usersNotified, err := notify.RunAnnualSummary(db, sender, now)
+	if err != nil {
+		t.Fatalf("RunAnnualSummary returned error: %v", err)
+	}
+	if usersNotified != 0 {
+		t.Errorf("usersNotified = %d, want 0", usersNotified)
+	}
+}
+
+func TestRunAnnualSummary_DoesNotResendWithinTheSameYear(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "token-a")
+	seedProduct(t, db, user.HouseholdID, "פג לאחרונה", now.AddDate(0, -1, 0))
+
+	sender := &fakeSender{}
+	first, err := notify.RunAnnualSummary(db, sender, now)
+	if err != nil || first != 1 {
+		t.Fatalf("first run: usersNotified=%d err=%v, want 1 and nil", first, err)
+	}
+
+	// A second run a month later should not re-notify the same user.
+	second, err := notify.RunAnnualSummary(db, sender, now.AddDate(0, 1, 0))
+	if err != nil {
+		t.Fatalf("second run returned error: %v", err)
+	}
+	if second != 0 {
+		t.Errorf("second run usersNotified = %d, want 0 (already notified within the last year)", second)
 	}
 }

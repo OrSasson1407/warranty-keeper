@@ -11,9 +11,16 @@ import (
 	"warrantykeeper/server/internal/models"
 )
 
-// DefaultWarningDays is how far ahead of expiry the single MVP notification
+// DefaultWarningDays is how far ahead of expiry the original MVP notification
 // fires (see the mvp-scope doc: one flat warning, no multi-tier schedule).
+// Kept for backward compatibility with existing callers of RunExpiryCheck;
+// new code should use DefaultWarningDaysTiers via RunMultiTierExpiryCheck.
 const DefaultWarningDays = 30
+
+// DefaultWarningDaysTiers is the v2 multi-tier expiry-warning schedule
+// (30/14/3 days before expiry), fixed rather than per-user configurable per
+// the v2 scope doc.
+var DefaultWarningDaysTiers = []int{30, 14, 3}
 
 // maxSendAttempts bounds the immediate in-process retry for a single push
 // send. A transient failure (dropped connection, momentary rate limit) no
@@ -66,7 +73,7 @@ func RunExpiryCheck(gdb *gorm.DB, sender Sender, warningDays int, now time.Time)
 		for _, user := range users {
 			var alreadySent int64
 			gdb.Model(&models.NotificationLog{}).
-				Where("user_id = ? AND product_id = ? AND type = ?", user.ID, product.ID, models.NotificationTypeExpiryWarning).
+				Where("user_id = ? AND product_id = ? AND type = ? AND warning_days = ?", user.ID, product.ID, models.NotificationTypeExpiryWarning, warningDays).
 				Count(&alreadySent)
 			if alreadySent > 0 {
 				continue
@@ -95,10 +102,11 @@ func RunExpiryCheck(gdb *gorm.DB, sender Sender, warningDays int, now time.Time)
 
 			if delivered {
 				gdb.Create(&models.NotificationLog{
-					UserID:    user.ID,
-					ProductID: product.ID,
-					Type:      models.NotificationTypeExpiryWarning,
-					SentAt:    time.Now(),
+					UserID:      user.ID,
+					ProductID:   product.ID,
+					Type:        models.NotificationTypeExpiryWarning,
+					SentAt:      time.Now(),
+					WarningDays: warningDays,
 				})
 				sent++
 			}
@@ -106,4 +114,88 @@ func RunExpiryCheck(gdb *gorm.DB, sender Sender, warningDays int, now time.Time)
 	}
 
 	return len(products), sent, nil
+}
+
+// RunMultiTierExpiryCheck runs RunExpiryCheck once per configured warning-day
+// threshold (see DefaultWarningDaysTiers), so a product gets an independent
+// notification at each tier instead of the first one blocking the rest --
+// each tier's notification_log rows are distinguished by WarningDays.
+func RunMultiTierExpiryCheck(gdb *gorm.DB, sender Sender, warningDaysList []int, now time.Time) (checked, sent int, err error) {
+	for _, days := range warningDaysList {
+		c, s, e := RunExpiryCheck(gdb, sender, days, now)
+		if e != nil {
+			return checked, sent, e
+		}
+		checked += c
+		sent += s
+	}
+	return checked, sent, nil
+}
+
+// RunAnnualSummary sends one "house check" summary per user, once a year, to
+// anyone with at least one household product whose warranty expired in the
+// last 12 months. Skips users already sent a summary within the last year
+// (tracked the same way as expiry warnings, via notification_log).
+func RunAnnualSummary(gdb *gorm.DB, sender Sender, now time.Time) (usersNotified int, err error) {
+	yearAgo := now.AddDate(-1, 0, 0)
+
+	var users []models.User
+	if err := gdb.Find(&users).Error; err != nil {
+		return 0, fmt.Errorf("query users: %w", err)
+	}
+
+	ctx := context.Background()
+
+	for _, user := range users {
+		var alreadySent int64
+		gdb.Model(&models.NotificationLog{}).
+			Where("user_id = ? AND type = ? AND sent_at > ?", user.ID, models.NotificationTypeAnnualSummary, yearAgo).
+			Count(&alreadySent)
+		if alreadySent > 0 {
+			continue
+		}
+
+		var expiredProducts []models.Product
+		if err := gdb.Where("household_id = ? AND warranty_expires_at >= ? AND warranty_expires_at <= ?", user.HouseholdID, yearAgo, now).
+			Find(&expiredProducts).Error; err != nil {
+			log.Printf("failed to load expired products for user %s: %v", user.ID, err)
+			continue
+		}
+		if len(expiredProducts) == 0 {
+			continue
+		}
+
+		var tokens []models.DeviceToken
+		if err := gdb.Where("user_id = ?", user.ID).Find(&tokens).Error; err != nil {
+			log.Printf("failed to load device tokens for user %s: %v", user.ID, err)
+			continue
+		}
+		if len(tokens) == 0 {
+			continue
+		}
+
+		title := "סיכום שנתי"
+		body := fmt.Sprintf("בשנה האחרונה פגה האחריות על %d מוצרים בבית שלך", len(expiredProducts))
+
+		delivered := false
+		for _, token := range tokens {
+			if err := sendWithRetry(ctx, sender, token.ExpoPushToken, title, body); err != nil {
+				log.Printf("failed to send annual summary to %s after %d attempts: %v", token.ExpoPushToken, maxSendAttempts, err)
+				continue
+			}
+			delivered = true
+		}
+
+		if delivered {
+			gdb.Create(&models.NotificationLog{
+				UserID:    user.ID,
+				ProductID: expiredProducts[0].ID, // representative product; this notification type is user-level, not product-level
+				Type:      models.NotificationTypeAnnualSummary,
+				SentAt:    now,
+			})
+			usersNotified++
+		}
+	}
+
+	return usersNotified, nil
 }
