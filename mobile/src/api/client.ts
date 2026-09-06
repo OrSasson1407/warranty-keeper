@@ -78,6 +78,8 @@ export const api = {
 
   getMyHousehold: () => request<Household>('/households/me'),
 
+  upgradeHousehold: () => request<{ tier: string }>('/households/me/upgrade', { method: 'POST' }),
+
   uploadReceipt: (file: { uri: string; name: string; type: string }) => {
     const form = new FormData();
     // React Native's FormData accepts this {uri,name,type} shape directly.

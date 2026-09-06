@@ -15,10 +15,11 @@ type householdMemberResponse struct {
 }
 
 type householdResponse struct {
-	ID         string                     `json:"id"`
-	Name       string                     `json:"name"`
-	InviteCode string                     `json:"invite_code"`
-	Members    []householdMemberResponse  `json:"members"`
+	ID         string                    `json:"id"`
+	Name       string                    `json:"name"`
+	InviteCode string                    `json:"invite_code"`
+	Tier       string                    `json:"tier"`
+	Members    []householdMemberResponse `json:"members"`
 }
 
 // GetMyHousehold returns the caller's household with its member list, so the
@@ -46,6 +47,28 @@ func (h *Handler) GetMyHousehold(c *gin.Context) {
 		ID:         household.ID.String(),
 		Name:       household.Name,
 		InviteCode: household.InviteCode,
+		Tier:       household.Tier,
 		Members:    members,
 	})
+}
+
+// UpgradeHousehold is a placeholder for the v2 Premium tier: it flips the
+// household straight to premium with no real payment step. Swap this for a
+// real payment provider (Stripe or similar) before relying on it commercially
+// -- see the "basic Premium/freemium tier" issue, which explicitly allows a
+// placeholder here if payment integration isn't ready in the same timeframe.
+func (h *Handler) UpgradeHousehold(c *gin.Context) {
+	var household models.Household
+	if err := h.DB.First(&household, "id = ?", householdID(c)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "household not found"})
+		return
+	}
+
+	household.Tier = models.HouseholdTierPremium
+	if err := h.DB.Save(&household).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upgrade household"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tier": household.Tier})
 }

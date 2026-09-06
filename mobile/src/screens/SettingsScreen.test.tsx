@@ -10,11 +10,14 @@ import { registerForExpiryPush } from '../notifications/registerPush';
 import { createMockNavigation } from '../testUtils/navigation';
 
 jest.mock('../context/AuthContext', () => ({ useAuth: jest.fn() }));
-jest.mock('../api/client', () => ({ api: { getMyHousehold: jest.fn() } }));
+jest.mock('../api/client', () => ({
+  api: { getMyHousehold: jest.fn(), upgradeHousehold: jest.fn() },
+}));
 jest.mock('../notifications/registerPush', () => ({ registerForExpiryPush: jest.fn() }));
 
 const mockUseAuth = useAuth as jest.Mock;
 const mockGetMyHousehold = api.getMyHousehold as jest.Mock;
+const mockUpgradeHousehold = api.upgradeHousehold as jest.Mock;
 const mockRegisterForExpiryPush = registerForExpiryPush as jest.Mock;
 
 function household(overrides: Partial<Household> = {}): Household {
@@ -22,6 +25,7 @@ function household(overrides: Partial<Household> = {}): Household {
     id: 'h1',
     name: 'הבית של מיכל כהן',
     invite_code: 'ABCD1234',
+    tier: 'free',
     members: [{ id: 'u1', full_name: 'מיכל כהן', email: 'michal@example.com' }],
     ...overrides,
   };
@@ -31,6 +35,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   mockUseAuth.mockReturnValue({ user: { id: 'u1' }, logout: jest.fn() });
   mockGetMyHousehold.mockResolvedValue(household());
+  mockUpgradeHousehold.mockResolvedValue({ tier: 'premium' });
   mockRegisterForExpiryPush.mockResolvedValue(true);
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction } as any);
@@ -111,6 +116,44 @@ describe('SettingsScreen', () => {
 
     const toggle = await screen.findByRole('switch');
     await waitFor(() => expect(toggle.props.value).toBe(true));
+  });
+
+  it('shows the free plan note and an upgrade button on the free tier', async () => {
+    renderScreen();
+    expect(await screen.findByText('תוכנית חינמית — עד 20 מוצרים')).toBeTruthy();
+    expect(screen.getByText('שדרגו ל-Premium')).toBeTruthy();
+  });
+
+  it('shows the premium badge instead of an upgrade button on the premium tier', async () => {
+    mockGetMyHousehold.mockResolvedValue(household({ tier: 'premium' }));
+    renderScreen();
+    expect(await screen.findByText('⭐ Premium — ללא הגבלת מוצרים')).toBeTruthy();
+    expect(screen.queryByText('שדרגו ל-Premium')).toBeNull();
+  });
+
+  it('upgrades and refreshes the household when "שדרגו ל-Premium" is pressed', async () => {
+    mockGetMyHousehold
+      .mockResolvedValueOnce(household({ tier: 'free' }))
+      .mockResolvedValueOnce(household({ tier: 'premium' }));
+    renderScreen();
+
+    fireEvent.press(await screen.findByText('שדרגו ל-Premium'));
+
+    await waitFor(() => expect(mockUpgradeHousehold).toHaveBeenCalled());
+    expect(await screen.findByText('⭐ Premium — ללא הגבלת מוצרים')).toBeTruthy();
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('שודרג בהצלחה', expect.any(String)),
+    );
+  });
+
+  it('alerts on failure without changing the displayed tier', async () => {
+    mockUpgradeHousehold.mockRejectedValue(new Error('network error'));
+    renderScreen();
+
+    fireEvent.press(await screen.findByText('שדרגו ל-Premium'));
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', expect.any(String)));
+    expect(screen.getByText('תוכנית חינמית — עד 20 מוצרים')).toBeTruthy();
   });
 
   it('calls logout when the logout button is pressed', async () => {

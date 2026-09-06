@@ -29,6 +29,7 @@ func NewRouter(h *handlers.Handler) *gin.Engine {
 	api := router.Group("/", middleware.RequireAuth(h.Cfg.JWTSecret))
 	{
 		api.GET("/households/me", h.GetMyHousehold)
+		api.POST("/households/me/upgrade", h.UpgradeHousehold)
 		api.POST("/devices", h.RegisterDevice)
 
 		receipts := api.Group("/receipts", authLimiter)

@@ -28,6 +28,7 @@ export default function SettingsScreen(_props: Props) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -51,6 +52,20 @@ export default function SettingsScreen(_props: Props) {
         setPushEnabled(false);
         await AsyncStorage.setItem(PUSH_PREF_KEY, 'false');
       }
+    }
+  };
+
+  const onUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      await api.upgradeHousehold();
+      const refreshed = await api.getMyHousehold();
+      setHousehold(refreshed);
+      Alert.alert('שודרג בהצלחה', 'משק הבית שלכם עבר ל-Premium — ללא הגבלת מוצרים.');
+    } catch {
+      Alert.alert('שגיאה', 'לא הצלחנו לשדרג כרגע, נסו שוב מאוחר יותר.');
+    } finally {
+      setUpgrading(false);
     }
   };
 
@@ -91,6 +106,24 @@ export default function SettingsScreen(_props: Props) {
         )}
       </View>
 
+      <Text style={styles.sectionTitle}>מנוי</Text>
+      <View style={styles.card}>
+        {household.tier === 'premium' ? (
+          <Text style={styles.premiumBadge}>⭐ Premium — ללא הגבלת מוצרים</Text>
+        ) : (
+          <>
+            <Text style={styles.memberRow}>תוכנית חינמית — עד 20 מוצרים</Text>
+            <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade} disabled={upgrading}>
+              {upgrading ? (
+                <ActivityIndicator color={colors.primaryText} />
+              ) : (
+                <Text style={styles.upgradeButtonText}>שדרגו ל-Premium</Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
       <Text style={styles.sectionTitle}>התראות</Text>
       <View style={styles.card}>
         <View style={styles.switchRow}>
@@ -126,6 +159,14 @@ const styles = StyleSheet.create({
   inviteButton: { paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
   inviteButtonText: { color: colors.primary, textAlign: 'right', fontWeight: '600' },
   fullNote: { color: colors.textMuted, textAlign: 'right', fontSize: 13 },
+  premiumBadge: { color: colors.statusOk, fontWeight: '700', textAlign: 'right', fontSize: 15 },
+  upgradeButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  upgradeButtonText: { color: colors.primaryText, fontWeight: '600', fontSize: 14 },
   switchRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   switchLabel: { fontSize: 15, color: colors.text },
   logoutButton: { marginTop: 32, alignItems: 'center', padding: 12 },

@@ -16,6 +16,7 @@ type householdResponse struct {
 	ID         string                    `json:"id"`
 	Name       string                    `json:"name"`
 	InviteCode string                    `json:"invite_code"`
+	Tier       string                    `json:"tier"`
 	Members    []householdMemberResponse `json:"members"`
 }
 
@@ -102,6 +103,40 @@ func TestGetMyHousehold_ScopedToCallersOwnHousehold(t *testing.T) {
 func TestGetMyHousehold_RequiresAuth(t *testing.T) {
 	s := newTestSetup(t)
 	rec := doJSONAs(t, s.router, http.MethodGet, "/households/me", "", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestGetMyHousehold_DefaultsToFreeTier(t *testing.T) {
+	s := newTestSetup(t)
+	rec := doJSONAs(t, s.router, http.MethodGet, "/households/me", s.token, nil)
+	var household householdResponse
+	decodeJSON(t, rec, &household)
+	if household.Tier != "free" {
+		t.Errorf("Tier = %q, want %q for a newly created household", household.Tier, "free")
+	}
+}
+
+func TestUpgradeHousehold_SetsTierToPremium(t *testing.T) {
+	s := newTestSetup(t)
+
+	rec := doJSONAs(t, s.router, http.MethodPost, "/households/me/upgrade", s.token, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d (body: %s)", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	getRec := doJSONAs(t, s.router, http.MethodGet, "/households/me", s.token, nil)
+	var household householdResponse
+	decodeJSON(t, getRec, &household)
+	if household.Tier != "premium" {
+		t.Errorf("Tier = %q after upgrade, want %q", household.Tier, "premium")
+	}
+}
+
+func TestUpgradeHousehold_RequiresAuth(t *testing.T) {
+	s := newTestSetup(t)
+	rec := doJSONAs(t, s.router, http.MethodPost, "/households/me/upgrade", "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}

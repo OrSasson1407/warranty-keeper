@@ -184,4 +184,23 @@ describe('ConfirmProductScreen', () => {
       expect(Alert.alert).toHaveBeenCalledWith('שגיאה בשמירה', 'שמירה נכשלה בשרת'),
     );
   });
+
+  it('offers an upgrade path when the free-tier product limit is hit (402)', async () => {
+    mockCreateProduct.mockRejectedValue(new ApiError(402, 'free plan is limited to 20 products'));
+    const navigation = renderWithDraft(draft());
+
+    fireEvent.press(screen.getByText('שמור מוצר'));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'הגעתם למגבלת התוכנית החינמית',
+        'free plan is limited to 20 products',
+        expect.any(Array),
+      ),
+    );
+    // Simulate pressing the "שדרגו ל-Premium" button passed to Alert.alert.
+    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
+    buttons[1].onPress();
+    expect(navigation.navigate).toHaveBeenCalledWith('Settings');
+  });
 });

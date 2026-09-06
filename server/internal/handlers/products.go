@@ -43,6 +43,26 @@ func (h *Handler) CreateProduct(c *gin.Context) {
 
 	hid := householdID(c)
 
+	var household models.Household
+	if err := h.DB.First(&household, "id = ?", hid).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load household"})
+		return
+	}
+	if household.Tier != models.HouseholdTierPremium {
+		var count int64
+		if err := h.DB.Model(&models.Product{}).Where("household_id = ?", hid).Count(&count).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check product count"})
+			return
+		}
+		if count >= models.FreeTierProductLimit {
+			c.JSON(http.StatusPaymentRequired, gin.H{
+				"error": "free plan is limited to 20 products — upgrade to Premium to add more",
+				"code":  "free_tier_limit_reached",
+			})
+			return
+		}
+	}
+
 	product := models.Product{
 		HouseholdID:  hid,
 		Name:         req.Name,

@@ -80,7 +80,14 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       });
       navigation.replace('ProductDetail', { productId: product.id });
     } catch (e) {
-      Alert.alert('שגיאה בשמירה', e instanceof ApiError ? e.message : 'נסו שוב');
+      if (e instanceof ApiError && e.status === 402) {
+        Alert.alert('הגעתם למגבלת התוכנית החינמית', e.message, [
+          { text: 'ביטול', style: 'cancel' },
+          { text: 'שדרגו ל-Premium', onPress: () => navigation.navigate('Settings') },
+        ]);
+      } else {
+        Alert.alert('שגיאה בשמירה', e instanceof ApiError ? e.message : 'נסו שוב');
+      }
     } finally {
       setSaving(false);
     }

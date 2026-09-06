@@ -111,6 +111,47 @@ func TestCreateProduct_ValidationErrors(t *testing.T) {
 	}
 }
 
+func TestCreateProduct_FreeTierRejectsThe21stProduct(t *testing.T) {
+	s := newTestSetup(t)
+	for i := 0; i < models.FreeTierProductLimit; i++ {
+		code, _ := createProduct(t, s, s.token, map[string]any{
+			"name": "מוצר", "category": "x", "purchase_date": "2026-01-01",
+		})
+		if code != http.StatusCreated {
+			t.Fatalf("product %d: status = %d, want %d", i+1, code, http.StatusCreated)
+		}
+	}
+
+	code, _ := createProduct(t, s, s.token, map[string]any{
+		"name": "המוצר ה-21", "category": "x", "purchase_date": "2026-01-01",
+	})
+	if code != http.StatusPaymentRequired {
+		t.Errorf("status for the 21st product = %d, want %d", code, http.StatusPaymentRequired)
+	}
+
+	var count int64
+	s.db.Model(&models.Product{}).Where("household_id = ?", s.householdID).Count(&count)
+	if count != models.FreeTierProductLimit {
+		t.Errorf("product count = %d, want exactly %d (the 21st must not have been saved)", count, models.FreeTierProductLimit)
+	}
+}
+
+func TestCreateProduct_PremiumTierHasNoLimit(t *testing.T) {
+	s := newTestSetup(t)
+	if err := s.db.Model(&models.Household{}).Where("id = ?", s.householdID).Update("tier", models.HouseholdTierPremium).Error; err != nil {
+		t.Fatalf("failed to upgrade household to premium: %v", err)
+	}
+
+	for i := 0; i < models.FreeTierProductLimit+1; i++ {
+		code, _ := createProduct(t, s, s.token, map[string]any{
+			"name": "מוצר", "category": "x", "purchase_date": "2026-01-01",
+		})
+		if code != http.StatusCreated {
+			t.Fatalf("product %d: status = %d, want %d (premium households have no cap)", i+1, code, http.StatusCreated)
+		}
+	}
+}
+
 func TestCreateProduct_RequiresAuth(t *testing.T) {
 	s := newTestSetup(t)
 	code, _ := createProduct(t, s, "", map[string]any{

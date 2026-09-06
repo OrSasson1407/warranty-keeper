@@ -104,6 +104,7 @@ func newTestSetup(t *testing.T) *testSetup {
 	authed.POST("/products/:id/claims", h.CreateClaim)
 	authed.GET("/products/:id/claims", h.ListClaims)
 	authed.GET("/households/me", h.GetMyHousehold)
+	authed.POST("/households/me/upgrade", h.UpgradeHousehold)
 	authed.GET("/manufacturer-contacts", h.ListManufacturerContacts)
 
 	token, err := auth.GenerateAccessToken(testJWTSecret, user.ID, household.ID)

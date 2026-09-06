@@ -17,10 +17,13 @@ export interface HouseholdMember {
   email: string;
 }
 
+export type HouseholdTier = 'free' | 'premium';
+
 export interface Household {
   id: string;
   name: string;
   invite_code: string;
+  tier: HouseholdTier;
   members: HouseholdMember[];
 }
 
