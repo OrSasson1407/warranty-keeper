@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -80,6 +81,7 @@ func (h *Handler) UploadReceipt(c *gin.Context) {
 	status := models.ReceiptStatusProcessed
 	if err != nil {
 		status = models.ReceiptStatusFailed
+		log.Printf("OCR parse failed for receipt %s: %v", receipt.ID, err)
 	}
 
 	receipt.ImageURL = imageURL
