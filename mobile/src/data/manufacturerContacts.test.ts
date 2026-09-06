@@ -14,7 +14,11 @@ const bosch: ManufacturerContact = {
   phone: '03-1234567',
   website: 'https://www.bosch-home.co.il',
 };
-const samsung: ManufacturerContact = { brand: 'Samsung', phone: '*6444', website: 'https://samsung.com' };
+const samsung: ManufacturerContact = {
+  brand: 'Samsung',
+  phone: '*6444',
+  website: 'https://samsung.com',
+};
 
 beforeEach(async () => {
   await AsyncStorage.clear();

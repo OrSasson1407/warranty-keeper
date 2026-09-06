@@ -43,5 +43,9 @@ async function findWritableCalendar(): Promise<Calendar.ExpoCalendar | null> {
   }
 
   const calendars = await Calendar.getCalendars(Calendar.EntityTypes.EVENT);
-  return calendars.find((c) => c.isPrimary && c.allowsModifications) ?? calendars.find((c) => c.allowsModifications) ?? null;
+  return (
+    calendars.find((c) => c.isPrimary && c.allowsModifications) ??
+    calendars.find((c) => c.allowsModifications) ??
+    null
+  );
 }

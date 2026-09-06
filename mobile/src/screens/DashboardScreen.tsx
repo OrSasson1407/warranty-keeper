@@ -112,7 +112,9 @@ export default function DashboardScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-        ListHeaderComponent={products.length > 0 ? <DashboardSummary analytics={analytics} /> : null}
+        ListHeaderComponent={
+          products.length > 0 ? <DashboardSummary analytics={analytics} /> : null
+        }
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>

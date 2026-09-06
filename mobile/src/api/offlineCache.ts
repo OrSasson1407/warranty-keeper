@@ -31,7 +31,9 @@ export async function loadProductsCache(): Promise<ProductsCache | null> {
 /** Same read-through-cache pattern for the manufacturer contact list, which
  * used to be a static bundled file (see internal/models/manufacturer_contact.go
  * on the server side) and is now fetched from the API. */
-export async function saveManufacturerContactsCache(contacts: ManufacturerContact[]): Promise<void> {
+export async function saveManufacturerContactsCache(
+  contacts: ManufacturerContact[],
+): Promise<void> {
   await AsyncStorage.setItem(MANUFACTURER_CONTACTS_CACHE_KEY, JSON.stringify(contacts));
 }
 

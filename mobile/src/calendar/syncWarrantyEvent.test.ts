@@ -20,7 +20,9 @@ function setPlatform(os: string) {
   Object.defineProperty(Platform, 'OS', { value: os, configurable: true });
 }
 
-function fakeCalendar(overrides: Partial<{ isPrimary: boolean; allowsModifications: boolean }> = {}) {
+function fakeCalendar(
+  overrides: Partial<{ isPrimary: boolean; allowsModifications: boolean }> = {},
+) {
   return {
     id: 'cal1',
     isPrimary: overrides.isPrimary ?? false,
