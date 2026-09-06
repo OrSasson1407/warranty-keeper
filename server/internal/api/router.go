@@ -47,6 +47,7 @@ func NewRouter(h *handlers.Handler) *gin.Engine {
 		api.GET("/products/:id/claims", h.ListClaims)
 		api.POST("/products/:id/costs", h.CreateProductCost)
 		api.GET("/products/:id/costs", h.ListProductCosts)
+		api.POST("/products/:id/warranty-report", h.ReportWarrantyRule)
 	}
 
 	return router

@@ -41,6 +41,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   const [savingCost, setSavingCost] = useState(false);
   const [costAmount, setCostAmount] = useState('');
   const [costDescription, setCostDescription] = useState('');
+  const [reportingRule, setReportingRule] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,6 +100,18 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
     }
   };
 
+  const onReportWarrantyRule = async () => {
+    setReportingRule(true);
+    try {
+      await api.reportWarrantyRule(product.id);
+      Alert.alert('תודה על הדיווח', 'נבדוק את תקופת האחריות לקטגוריה הזו.');
+    } catch {
+      Alert.alert('שגיאה', 'לא הצלחנו לשלוח את הדיווח, נסו שוב.');
+    } finally {
+      setReportingRule(false);
+    }
+  };
+
   const onAddToCalendar = async () => {
     setAddingToCalendar(true);
     try {
@@ -137,6 +150,9 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
         {product.warranty_uncertain ? (
           <Text style={styles.uncertainNote}>תאריך משוער — ייתכן שקיימת אחריות שונה בפועל</Text>
         ) : null}
+        <TouchableOpacity onPress={onReportWarrantyRule} disabled={reportingRule}>
+          <Text style={styles.reportRuleLink}>תקופת האחריות נראית לא נכונה?</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -255,6 +271,7 @@ const styles = StyleSheet.create({
   statusSection: { gap: 6, alignItems: 'flex-end', marginTop: 4 },
   daysText: { fontSize: 13, color: colors.textMuted },
   uncertainNote: { fontSize: 12, color: colors.statusWarning },
+  reportRuleLink: { fontSize: 12, color: colors.textMuted, textDecorationLine: 'underline' },
   receiptButton: {
     backgroundColor: colors.surface,
     borderWidth: 1,

@@ -21,6 +21,7 @@ jest.mock('../api/client', () => ({
     listClaims: jest.fn(),
     listProductCosts: jest.fn(),
     createProductCost: jest.fn(),
+    reportWarrantyRule: jest.fn(),
   },
   ApiError: jest.requireActual('../api/client').ApiError,
 }));
@@ -30,6 +31,7 @@ const mockGetProduct = api.getProduct as jest.Mock;
 const mockListClaims = api.listClaims as jest.Mock;
 const mockListProductCosts = api.listProductCosts as jest.Mock;
 const mockCreateProductCost = api.createProductCost as jest.Mock;
+const mockReportWarrantyRule = api.reportWarrantyRule as jest.Mock;
 const mockAddToCalendar = addWarrantyExpiryToCalendar as jest.Mock;
 
 function product(overrides: Partial<Product> = {}): Product {
@@ -82,6 +84,7 @@ beforeEach(() => {
   mockListClaims.mockResolvedValue([]);
   mockListProductCosts.mockResolvedValue([]);
   mockCreateProductCost.mockResolvedValue(cost());
+  mockReportWarrantyRule.mockResolvedValue({ id: 'report1' });
   mockAddToCalendar.mockResolvedValue(true);
   jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
@@ -257,5 +260,23 @@ describe('ProductDetailScreen', () => {
     fireEvent.press(screen.getByText('שמור עלות'));
 
     await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', 'שמירה נכשלה'));
+  });
+
+  it('reports the warranty rule and thanks the user when the link is pressed', async () => {
+    renderScreen();
+    fireEvent.press(await screen.findByText('תקופת האחריות נראית לא נכונה?'));
+
+    await waitFor(() => expect(mockReportWarrantyRule).toHaveBeenCalledWith('p1'));
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('תודה על הדיווח', expect.any(String)),
+    );
+  });
+
+  it('shows an error alert when reporting the warranty rule fails', async () => {
+    mockReportWarrantyRule.mockRejectedValue(new Error('network error'));
+    renderScreen();
+    fireEvent.press(await screen.findByText('תקופת האחריות נראית לא נכונה?'));
+
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('שגיאה', expect.any(String)));
   });
 });

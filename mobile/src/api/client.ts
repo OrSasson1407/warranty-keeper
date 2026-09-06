@@ -148,6 +148,12 @@ export const api = {
 
   listProductCosts: (productId: string) => request<ProductCost[]>(`/products/${productId}/costs`),
 
+  reportWarrantyRule: (productId: string, note?: string) =>
+    request<{ id: string }>(`/products/${productId}/warranty-report`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+
   registerDevice: (expoPushToken: string) =>
     request<{ status: string }>('/devices', {
       method: 'POST',

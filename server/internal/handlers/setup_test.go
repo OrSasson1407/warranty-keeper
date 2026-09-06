@@ -75,7 +75,7 @@ func newTestSetup(t *testing.T) *testSetup {
 	if err := db.AutoMigrate(
 		&models.Household{}, &models.User{}, &models.Product{},
 		&models.Receipt{}, &models.WarrantyRule{}, &models.WarrantyClaim{},
-		&models.ManufacturerContact{}, &models.ProductCost{},
+		&models.ManufacturerContact{}, &models.ProductCost{}, &models.WarrantyRuleReport{},
 	); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
@@ -105,6 +105,7 @@ func newTestSetup(t *testing.T) *testSetup {
 	authed.GET("/products/:id/claims", h.ListClaims)
 	authed.POST("/products/:id/costs", h.CreateProductCost)
 	authed.GET("/products/:id/costs", h.ListProductCosts)
+	authed.POST("/products/:id/warranty-report", h.ReportWarrantyRule)
 	authed.GET("/households/me", h.GetMyHousehold)
 	authed.POST("/households/me/upgrade", h.UpgradeHousehold)
 	authed.GET("/manufacturer-contacts", h.ListManufacturerContacts)
