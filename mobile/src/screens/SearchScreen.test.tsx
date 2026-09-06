@@ -65,7 +65,7 @@ describe('SearchScreen', () => {
     });
 
     expect(mockListProducts).toHaveBeenCalledTimes(1);
-    expect(mockListProducts).toHaveBeenCalledWith('מזג');
+    expect(mockListProducts).toHaveBeenCalledWith(expect.objectContaining({ q: 'מזג' }));
   });
 
   it('shows the result count and matching product names', async () => {
@@ -110,6 +110,75 @@ describe('SearchScreen', () => {
     expect(screen.getByText('מזגן')).toBeTruthy();
 
     fireEvent.changeText(screen.getByPlaceholderText('🔍 חפש מוצר...'), '');
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300);
+    });
+
+    expect(screen.queryByText('מזגן')).toBeNull();
+    expect(screen.queryByText(/תוצאות/)).toBeNull();
+  });
+
+  it('hides the filter panel by default and shows it when the filter toggle is pressed', () => {
+    render(<SearchScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    expect(screen.queryByText('קטגוריה')).toBeNull();
+
+    fireEvent.press(screen.getByText('🔧 סינון'));
+    expect(screen.getByText('קטגוריה')).toBeTruthy();
+    expect(screen.getByText('חדר')).toBeTruthy();
+  });
+
+  it('triggers a search from a status filter alone, with no text query', async () => {
+    render(<SearchScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    fireEvent.press(screen.getByText('🔧 סינון'));
+
+    fireEvent.press(screen.getByText('פג תוקף'));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300);
+    });
+
+    expect(mockListProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'expired', q: undefined }),
+    );
+  });
+
+  it('sends price_min/price_max as numbers', async () => {
+    render(<SearchScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    fireEvent.press(screen.getByText('🔧 סינון'));
+
+    fireEvent.changeText(screen.getByPlaceholderText('מחיר מינימלי'), '100');
+    fireEvent.changeText(screen.getByPlaceholderText('מחיר מקסימלי'), '500');
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300);
+    });
+
+    expect(mockListProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ price_min: 100, price_max: 500 }),
+    );
+  });
+
+  it('combines the text query with active filters in one call', async () => {
+    render(<SearchScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    fireEvent.press(screen.getByText('🔧 סינון'));
+    fireEvent.press(screen.getByText('עומד לפוג'));
+
+    await typeAndDebounce('מזגן');
+
+    expect(mockListProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'מזגן', status: 'warning' }),
+    );
+  });
+
+  it('clears results when both the query and all filters are cleared', async () => {
+    mockListProducts.mockResolvedValue([product({ id: 'p1', name: 'מזגן' })]);
+    render(<SearchScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    fireEvent.press(screen.getByText('🔧 סינון'));
+    fireEvent.press(screen.getByText('פג תוקף'));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(300);
+    });
+    expect(screen.getByText('מזגן')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('כל הסטטוסים'));
     await act(async () => {
       await jest.advanceTimersByTimeAsync(300);
     });

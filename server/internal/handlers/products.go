@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -117,14 +118,57 @@ func (h *Handler) CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, product)
 }
 
+// warrantyWarningWindowDays mirrors mobile/src/utils/warrantyStatus.ts's
+// WARNING_THRESHOLD_DAYS, so the server-side `status` filter agrees with the
+// color the dashboard actually shows for a product.
+const warrantyWarningWindowDays = 30
+
 // ListProducts returns the household's products sorted soonest-to-expire
-// first (Dashboard default per the UX doc), with optional free-text search.
+// first (Dashboard default per the UX doc), with optional free-text search
+// and filters: room, category, status (ok/warning/expired), price_min/price_max.
 func (h *Handler) ListProducts(c *gin.Context) {
 	var products []models.Product
 	query := h.DB.Where("household_id = ?", householdID(c))
 
 	if q := c.Query("q"); q != "" {
 		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+q+"%")
+	}
+	if room := c.Query("room"); room != "" {
+		query = query.Where("room = ?", room)
+	}
+	if category := c.Query("category"); category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if priceMin := c.Query("price_min"); priceMin != "" {
+		v, err := strconv.ParseFloat(priceMin, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "price_min must be a number"})
+			return
+		}
+		query = query.Where("price >= ?", v)
+	}
+	if priceMax := c.Query("price_max"); priceMax != "" {
+		v, err := strconv.ParseFloat(priceMax, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "price_max must be a number"})
+			return
+		}
+		query = query.Where("price <= ?", v)
+	}
+	if status := c.Query("status"); status != "" {
+		now := time.Now()
+		warningCutoff := now.AddDate(0, 0, warrantyWarningWindowDays)
+		switch status {
+		case "expired":
+			query = query.Where("warranty_expires_at < ?", now)
+		case "warning":
+			query = query.Where("warranty_expires_at >= ? AND warranty_expires_at <= ?", now, warningCutoff)
+		case "ok":
+			query = query.Where("warranty_expires_at > ?", warningCutoff)
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "status must be one of: ok, warning, expired"})
+			return
+		}
 	}
 
 	if err := query.Order("warranty_expires_at ASC").Find(&products).Error; err != nil {

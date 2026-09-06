@@ -292,6 +292,123 @@ func TestListProducts_SearchScopedToHousehold(t *testing.T) {
 	}
 }
 
+func listProductNames(t *testing.T, s *testSetup, token, query string) (int, []string) {
+	t.Helper()
+	path := "/products"
+	if query != "" {
+		path += "?" + query
+	}
+	rec := doJSONAs(t, s.router, http.MethodGet, path, token, nil)
+	if rec.Code != http.StatusOK {
+		return rec.Code, nil
+	}
+	var products []models.Product
+	decodeJSON(t, rec, &products)
+	names := make([]string, len(products))
+	for i, p := range products {
+		names[i] = p.Name
+	}
+	return rec.Code, names
+}
+
+func TestListProducts_FilterByRoom(t *testing.T) {
+	s := newTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "מזגן סלון", "category": "x", "room": "סלון", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+	createProduct(t, s, s.token, map[string]any{"name": "מיקרוגל מטבח", "category": "x", "room": "מטבח", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	_, got := listProductNames(t, s, s.token, "room="+"סלון")
+	if len(got) != 1 || got[0] != "מזגן סלון" {
+		t.Errorf("got %v, want exactly [\"מזגן סלון\"]", got)
+	}
+}
+
+func TestListProducts_FilterByCategory(t *testing.T) {
+	s := newTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "מזגן A", "category": "מזגן", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+	createProduct(t, s, s.token, map[string]any{"name": "מקרר B", "category": "מקרר", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	_, got := listProductNames(t, s, s.token, "category="+"מזגן")
+	if len(got) != 1 || got[0] != "מזגן A" {
+		t.Errorf("got %v, want exactly [\"מזגן A\"]", got)
+	}
+}
+
+func TestListProducts_FilterByPriceRange(t *testing.T) {
+	s := newTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{"name": "זול", "category": "x", "price": 100.0, "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+	createProduct(t, s, s.token, map[string]any{"name": "בינוני", "category": "x", "price": 500.0, "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+	createProduct(t, s, s.token, map[string]any{"name": "יקר", "category": "x", "price": 2000.0, "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})
+
+	_, got := listProductNames(t, s, s.token, "price_min=200&price_max=1000")
+	if len(got) != 1 || got[0] != "בינוני" {
+		t.Errorf("got %v, want exactly [\"בינוני\"]", got)
+	}
+}
+
+func TestListProducts_FilterByPriceRangeRejectsNonNumeric(t *testing.T) {
+	s := newTestSetup(t)
+	code, _ := listProductNames(t, s, s.token, "price_min=not-a-number")
+	if code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", code, http.StatusBadRequest)
+	}
+}
+
+func TestListProducts_FilterByStatus(t *testing.T) {
+	s := newTestSetup(t)
+	now := time.Now()
+	createProduct(t, s, s.token, map[string]any{
+		"name": "פג תוקף", "category": "x", "purchase_date": "2020-01-01",
+		"warranty_expires_at": now.AddDate(0, 0, -10).Format("2006-01-02"),
+	})
+	createProduct(t, s, s.token, map[string]any{
+		"name": "עומד לפוג", "category": "x", "purchase_date": "2026-01-01",
+		"warranty_expires_at": now.AddDate(0, 0, 10).Format("2006-01-02"),
+	})
+	createProduct(t, s, s.token, map[string]any{
+		"name": "בטוח", "category": "x", "purchase_date": "2026-01-01",
+		"warranty_expires_at": now.AddDate(2, 0, 0).Format("2006-01-02"),
+	})
+
+	for _, tc := range []struct {
+		status string
+		want   string
+	}{
+		{"expired", "פג תוקף"},
+		{"warning", "עומד לפוג"},
+		{"ok", "בטוח"},
+	} {
+		_, got := listProductNames(t, s, s.token, "status="+tc.status)
+		if len(got) != 1 || got[0] != tc.want {
+			t.Errorf("status=%q: got %v, want exactly [%q]", tc.status, got, tc.want)
+		}
+	}
+}
+
+func TestListProducts_FilterByStatusRejectsUnknownValue(t *testing.T) {
+	s := newTestSetup(t)
+	code, _ := listProductNames(t, s, s.token, "status=bogus")
+	if code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", code, http.StatusBadRequest)
+	}
+}
+
+func TestListProducts_FiltersCombineWithSearchAndEachOther(t *testing.T) {
+	s := newTestSetup(t)
+	createProduct(t, s, s.token, map[string]any{
+		"name": "מזגן טורנדו", "category": "מזגן", "room": "סלון", "price": 3000.0,
+		"purchase_date": "2026-01-01", "warranty_expires_at": "2028-01-01",
+	})
+	createProduct(t, s, s.token, map[string]any{
+		"name": "מזגן LG", "category": "מזגן", "room": "מטבח", "price": 3000.0,
+		"purchase_date": "2026-01-01", "warranty_expires_at": "2028-01-01",
+	})
+
+	_, got := listProductNames(t, s, s.token, "q=מזגן&category=מזגן&room=סלון")
+	if len(got) != 1 || got[0] != "מזגן טורנדו" {
+		t.Errorf("got %v, want exactly [\"מזגן טורנדו\"] (all filters combined)", got)
+	}
+}
+
 func TestGetProduct_NotFoundForOtherHousehold(t *testing.T) {
 	s := newTestSetup(t)
 	_, product := createProduct(t, s, s.token, map[string]any{"name": "X", "category": "x", "purchase_date": "2026-01-01", "warranty_expires_at": "2027-01-01"})

@@ -104,9 +104,23 @@ export const api = {
     warranty_expires_at?: string;
   }) => request<Product>('/products', { method: 'POST', body: JSON.stringify(payload) }),
 
-  listProducts: (q?: string) => {
-    const query = q ? `?q=${encodeURIComponent(q)}` : '';
-    return request<Product[]>(`/products${query}`);
+  listProducts: (params?: {
+    q?: string;
+    room?: string;
+    category?: string;
+    status?: 'ok' | 'warning' | 'expired';
+    price_min?: number;
+    price_max?: number;
+  }) => {
+    const search = new URLSearchParams();
+    if (params?.q) search.set('q', params.q);
+    if (params?.room) search.set('room', params.room);
+    if (params?.category) search.set('category', params.category);
+    if (params?.status) search.set('status', params.status);
+    if (params?.price_min != null) search.set('price_min', String(params.price_min));
+    if (params?.price_max != null) search.set('price_max', String(params.price_max));
+    const qs = search.toString();
+    return request<Product[]>(`/products${qs ? `?${qs}` : ''}`);
   },
 
   getProduct: (id: string) => request<Product>(`/products/${id}`),

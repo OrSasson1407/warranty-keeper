@@ -157,19 +157,40 @@ describe('resolveWarranty', () => {
 });
 
 describe('listProducts', () => {
-  it('omits the q param entirely when no search term is given', async () => {
+  it('omits all query params when no filters are given', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, []));
     await api.listProducts();
     const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
     expect(url).toBe(`${API_BASE_URL}/products`);
   });
 
-  it('URL-encodes the search term', async () => {
+  it('sends the search term as the q param', async () => {
     (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, []));
     const term = 'מזגן & אחריות';
-    await api.listProducts(term);
+    await api.listProducts({ q: term });
     const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
-    expect(url).toBe(`${API_BASE_URL}/products?q=${encodeURIComponent(term)}`);
+    const parsed = new URL(url as string);
+    expect(parsed.searchParams.get('q')).toBe(term);
+  });
+
+  it('combines all filter params in one request', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, []));
+    await api.listProducts({
+      q: 'מזגן',
+      room: 'סלון',
+      category: 'מזגן',
+      status: 'warning',
+      price_min: 100,
+      price_max: 1000,
+    });
+    const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    const parsed = new URL(url as string);
+    expect(parsed.searchParams.get('q')).toBe('מזגן');
+    expect(parsed.searchParams.get('room')).toBe('סלון');
+    expect(parsed.searchParams.get('category')).toBe('מזגן');
+    expect(parsed.searchParams.get('status')).toBe('warning');
+    expect(parsed.searchParams.get('price_min')).toBe('100');
+    expect(parsed.searchParams.get('price_max')).toBe('1000');
   });
 });
 
