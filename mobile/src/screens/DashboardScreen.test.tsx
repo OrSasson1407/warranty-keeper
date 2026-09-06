@@ -1,7 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import DashboardScreen from './DashboardScreen';
 import { api } from '../api/client';
+import { saveProductsCache } from '../api/offlineCache';
 import type { Product } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { createMockNavigation } from '../testUtils/navigation';
@@ -40,7 +42,8 @@ function product(overrides: Partial<Product>): Product {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
   mockUseAuth.mockReturnValue({ user: { full_name: 'מיכל כהן' } });
   mockListProducts.mockResolvedValue([]);
 });
@@ -109,5 +112,26 @@ describe('DashboardScreen', () => {
 
     fireEvent.press(await screen.findByText('מוצר לבדיקה'));
     expect(navigation.navigate).toHaveBeenCalledWith('ProductDetail', { productId: 'p42' });
+  });
+
+  it('falls back to cached products and shows an offline banner when the fetch fails', async () => {
+    await saveProductsCache([product({ id: 'p1', name: 'מוצר שמור' })]);
+    mockListProducts.mockRejectedValue(new Error('Network request failed'));
+
+    render(<DashboardScreen navigation={createMockNavigation() as any} route={{} as any} />);
+
+    expect(await screen.findByText('מוצר שמור')).toBeTruthy();
+    expect(await screen.findByText(/אין חיבור לאינטרנט/)).toBeTruthy();
+  });
+
+  it('shows the empty state (not the offline banner) when the fetch fails with no cache', async () => {
+    mockListProducts.mockRejectedValue(new Error('Network request failed'));
+
+    render(<DashboardScreen navigation={createMockNavigation() as any} route={{} as any} />);
+
+    expect(
+      await screen.findByText('עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/אין חיבור לאינטרנט/)).toBeNull();
   });
 });

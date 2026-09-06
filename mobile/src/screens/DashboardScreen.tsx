@@ -12,13 +12,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api } from '../api/client';
+import { loadProductsCache, saveProductsCache } from '../api/offlineCache';
 import type { Product } from '../api/types';
 import DashboardSummary from '../components/DashboardSummary';
 import StatusBadge from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { computeAnalytics } from '../utils/analytics';
-import { warrantyStatus } from '../utils/warrantyStatus';
+import { formatHebrewDate, warrantyStatus } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Dashboard'>;
@@ -30,11 +31,20 @@ export default function DashboardScreen({ navigation }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>('all');
+  const [offlineSince, setOfflineSince] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await api.listProducts();
       setProducts(data);
+      setOfflineSince(null);
+      saveProductsCache(data);
+    } catch {
+      const cache = await loadProductsCache();
+      if (cache) {
+        setProducts(cache.products);
+        setOfflineSince(cache.cachedAt);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,6 +81,14 @@ export default function DashboardScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {offlineSince ? (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>
+            אין חיבור לאינטרנט — מוצג מידע שמור מ-{formatHebrewDate(offlineSince)}
+          </Text>
+        </View>
+      ) : null}
 
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -133,6 +151,14 @@ export default function DashboardScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  offlineBanner: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: colors.statusWarningBg,
+    borderRadius: 10,
+    padding: 10,
+  },
+  offlineBannerText: { color: colors.statusWarning, fontSize: 12, textAlign: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
