@@ -13,9 +13,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api } from '../api/client';
 import type { Product } from '../api/types';
+import DashboardSummary from '../components/DashboardSummary';
 import StatusBadge from '../components/StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { computeAnalytics } from '../utils/analytics';
 import { warrantyStatus } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
 
@@ -48,6 +50,8 @@ export default function DashboardScreen({ navigation }: Props) {
     filter === 'expiring'
       ? products.filter((p) => warrantyStatus(p.warranty_expires_at) !== 'ok')
       : products;
+
+  const analytics = computeAnalytics(products);
 
   const firstName = user?.full_name?.split(' ')[0] ?? '';
 
@@ -90,6 +94,7 @@ export default function DashboardScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        ListHeaderComponent={products.length > 0 ? <DashboardSummary analytics={analytics} /> : null}
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
