@@ -18,6 +18,9 @@ type Config struct {
 	GoogleOAuthClientID     string
 	GoogleOAuthClientSecret string
 	TokenEncryptionKey      string
+	SupabaseURL             string
+	SupabaseServiceRoleKey  string
+	SupabaseStorageBucket   string
 }
 
 func Load() Config {
@@ -37,6 +40,9 @@ func Load() Config {
 		GoogleOAuthClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
 		GoogleOAuthClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
 		TokenEncryptionKey:      getEnv("TOKEN_ENCRYPTION_KEY", ""),
+		SupabaseURL:             getEnv("SUPABASE_URL", ""),
+		SupabaseServiceRoleKey:  getEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
+		SupabaseStorageBucket:   getEnv("SUPABASE_STORAGE_BUCKET", "receipts"),
 	}
 }
 

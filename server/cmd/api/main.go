@@ -25,9 +25,17 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	store, err := storage.NewLocalStore(cfg.UploadsDir, cfg.PublicBaseURL+"/uploads")
-	if err != nil {
-		log.Fatalf("failed to initialize storage: %v", err)
+	var store storage.Store
+	if cfg.SupabaseURL != "" && cfg.SupabaseServiceRoleKey != "" {
+		store = storage.NewSupabaseStore(cfg.SupabaseURL, cfg.SupabaseStorageBucket, cfg.SupabaseServiceRoleKey)
+		log.Printf("using Supabase storage (bucket=%s)", cfg.SupabaseStorageBucket)
+	} else {
+		localStore, err := storage.NewLocalStore(cfg.UploadsDir, cfg.PublicBaseURL+"/uploads")
+		if err != nil {
+			log.Fatalf("failed to initialize storage: %v", err)
+		}
+		store = localStore
+		log.Println("using local disk storage (ephemeral -- set SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY for persistent storage)")
 	}
 
 	var ocrProvider ocr.Provider = ocr.NewStubProvider()

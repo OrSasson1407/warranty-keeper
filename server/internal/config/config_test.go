@@ -18,6 +18,7 @@ func clearAllEnv(t *testing.T) {
 		"GEMINI_API_KEY", "GEMINI_OCR_MODEL",
 		"GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY",
 		"RENDER_EXTERNAL_URL",
+		"SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_STORAGE_BUCKET",
 	} {
 		t.Setenv(key, "")
 	}
@@ -69,6 +70,15 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.TokenEncryptionKey != "" {
 		t.Errorf("TokenEncryptionKey = %q, want empty by default", cfg.TokenEncryptionKey)
 	}
+	if cfg.SupabaseURL != "" {
+		t.Errorf("SupabaseURL = %q, want empty by default (local disk storage used without one)", cfg.SupabaseURL)
+	}
+	if cfg.SupabaseServiceRoleKey != "" {
+		t.Errorf("SupabaseServiceRoleKey = %q, want empty by default", cfg.SupabaseServiceRoleKey)
+	}
+	if cfg.SupabaseStorageBucket != "receipts" {
+		t.Errorf("SupabaseStorageBucket = %q, want the documented default %q", cfg.SupabaseStorageBucket, "receipts")
+	}
 }
 
 func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
@@ -87,6 +97,9 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
 	t.Setenv("GOOGLE_OAUTH_CLIENT_SECRET", "test-client-secret")
 	t.Setenv("TOKEN_ENCRYPTION_KEY", "test-encryption-key")
+	t.Setenv("SUPABASE_URL", "https://test-project.supabase.co")
+	t.Setenv("SUPABASE_SERVICE_ROLE_KEY", "test-service-role-key")
+	t.Setenv("SUPABASE_STORAGE_BUCKET", "test-bucket")
 
 	cfg := config.Load()
 	if cfg.Port != "9999" {
@@ -130,6 +143,15 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	}
 	if cfg.TokenEncryptionKey != "test-encryption-key" {
 		t.Errorf("TokenEncryptionKey = %q, want %q", cfg.TokenEncryptionKey, "test-encryption-key")
+	}
+	if cfg.SupabaseURL != "https://test-project.supabase.co" {
+		t.Errorf("SupabaseURL = %q, want %q", cfg.SupabaseURL, "https://test-project.supabase.co")
+	}
+	if cfg.SupabaseServiceRoleKey != "test-service-role-key" {
+		t.Errorf("SupabaseServiceRoleKey = %q, want %q", cfg.SupabaseServiceRoleKey, "test-service-role-key")
+	}
+	if cfg.SupabaseStorageBucket != "test-bucket" {
+		t.Errorf("SupabaseStorageBucket = %q, want %q", cfg.SupabaseStorageBucket, "test-bucket")
 	}
 }
 
