@@ -22,12 +22,17 @@ type sentMessage struct {
 // fakeSender records every Send call and can be told to fail for specific
 // tokens, to test the "don't log a notification if delivery failed" path.
 type fakeSender struct {
-	calls   []sentMessage
-	failFor map[string]bool
+	calls      []sentMessage
+	failFor    map[string]bool
+	failFirstN map[string]int // fails this many times for this token, then succeeds
 }
 
 func (f *fakeSender) Send(_ context.Context, token, title, body string) error {
 	f.calls = append(f.calls, sentMessage{token, title, body})
+	if f.failFirstN[token] > 0 {
+		f.failFirstN[token]--
+		return errors.New("transient send failure")
+	}
 	if f.failFor[token] {
 		return errors.New("send failed")
 	}
@@ -259,6 +264,34 @@ func TestRunExpiryCheck_DeliveryFailureDoesNotLogNotification(t *testing.T) {
 	db.Model(&models.NotificationLog{}).Where("product_id = ?", product.ID).Count(&logCount)
 	if logCount != 0 {
 		t.Errorf("notification_log rows = %d, want 0 so tomorrow's run retries", logCount)
+	}
+}
+
+func TestRunExpiryCheck_RetriesATransientFailureAndStillLogsSuccess(t *testing.T) {
+	db := newTestDB(t)
+	now := time.Date(2026, 9, 4, 0, 0, 0, 0, time.UTC)
+	user := seedHouseholdAndUser(t, db, "a@example.com")
+	seedDeviceToken(t, db, user.ID, "flaky-token")
+	product := seedProduct(t, db, user.HouseholdID, "X", now.AddDate(0, 0, notify.DefaultWarningDays))
+
+	// Fails the first 2 attempts, succeeds on the 3rd -- within the
+	// maxSendAttempts budget, so this run should still count as delivered.
+	sender := &fakeSender{failFirstN: map[string]int{"flaky-token": 2}}
+	checked, sent, err := notify.RunExpiryCheck(db, sender, notify.DefaultWarningDays, now)
+	if err != nil {
+		t.Fatalf("RunExpiryCheck returned error: %v", err)
+	}
+	if checked != 1 || sent != 1 {
+		t.Errorf("checked=%d sent=%d, want 1 and 1 (retry should have recovered)", checked, sent)
+	}
+	if len(sender.calls) != 3 {
+		t.Errorf("got %d Send calls, want 3 (2 failed attempts + 1 success)", len(sender.calls))
+	}
+
+	var logCount int64
+	db.Model(&models.NotificationLog{}).Where("product_id = ?", product.ID).Count(&logCount)
+	if logCount != 1 {
+		t.Errorf("notification_log rows = %d, want 1 (delivery ultimately succeeded)", logCount)
 	}
 }
 

@@ -15,6 +15,26 @@ import (
 // fires (see the mvp-scope doc: one flat warning, no multi-tier schedule).
 const DefaultWarningDays = 30
 
+// maxSendAttempts bounds the immediate in-process retry for a single push
+// send. A transient failure (dropped connection, momentary rate limit) no
+// longer has to wait for tomorrow's run before retrying; a persistent
+// failure still falls through to that daily retry via the unwritten
+// notification_log row, same as before.
+const maxSendAttempts = 3
+
+func sendWithRetry(ctx context.Context, sender Sender, token, title, body string) error {
+	var lastErr error
+	for attempt := 0; attempt < maxSendAttempts; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(1<<attempt) * 100 * time.Millisecond) // 200ms, then 400ms
+		}
+		if lastErr = sender.Send(ctx, token, title, body); lastErr == nil {
+			return nil
+		}
+	}
+	return lastErr
+}
+
 // RunExpiryCheck is the MVP's single scheduled job: find every product whose
 // warranty expires in exactly warningDays from now, and push a warning to
 // each household member who has a registered device, skipping anyone
@@ -66,8 +86,8 @@ func RunExpiryCheck(gdb *gorm.DB, sender Sender, warningDays int, now time.Time)
 
 			delivered := false
 			for _, token := range tokens {
-				if err := sender.Send(ctx, token.ExpoPushToken, title, body); err != nil {
-					log.Printf("failed to send push to %s: %v", token.ExpoPushToken, err)
+				if err := sendWithRetry(ctx, sender, token.ExpoPushToken, title, body); err != nil {
+					log.Printf("failed to send push to %s after %d attempts: %v", token.ExpoPushToken, maxSendAttempts, err)
 					continue
 				}
 				delivered = true

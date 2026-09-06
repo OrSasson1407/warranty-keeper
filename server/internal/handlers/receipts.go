@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,13 @@ import (
 	"warrantykeeper/server/internal/models"
 	"warrantykeeper/server/internal/warranty"
 )
+
+// ocrTimeout bounds how long a single OCR call can block the upload request.
+// The stub returns instantly, but a real provider (see internal/ocr.AnthropicProvider)
+// makes a real network call -- without a bound, a slow or hanging provider
+// would hang the HTTP request indefinitely instead of falling back to manual
+// entry the way a fast provider error already does.
+const ocrTimeout = 20 * time.Second
 
 type receiptDraftResponse struct {
 	ReceiptID         string   `json:"receipt_id"`
@@ -66,7 +74,9 @@ func (h *Handler) UploadReceipt(c *gin.Context) {
 		return
 	}
 
-	parsed, err := h.OCR.Parse(c.Request.Context(), imageBytes)
+	ocrCtx, cancel := context.WithTimeout(c.Request.Context(), ocrTimeout)
+	defer cancel()
+	parsed, err := h.OCR.Parse(ocrCtx, imageBytes)
 	status := models.ReceiptStatusProcessed
 	if err != nil {
 		status = models.ReceiptStatusFailed
