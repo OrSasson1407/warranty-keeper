@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.1.0 — 2026-09-06
+
+First real production deployment — the API is now live on the public internet with a persistent database and persistent file storage, not just running locally.
+
+### Infrastructure
+
+- **Live production deployment** — the API server runs on Render (free tier) at a real HTTPS URL, auto-deploying on every push to `master`. Added `render.yaml` as the deployment blueprint, with production secrets (`JWT_SECRET`, `TOKEN_ENCRYPTION_KEY`) generated fresh rather than reused from dev.
+- **Production database** — migrated onto Supabase Postgres (free tier) after discovering Neon's free tier was silently losing row data a few minutes after every write (schema persisted, rows didn't — reproduced repeatedly with `pg_stat_user_tables` showing matching insert/delete counts). Confirmed Supabase does not share this issue with a 10+ minute durability test before committing to it.
+- **Persistent receipt-photo storage** — added `internal/storage.SupabaseStore`, so uploaded receipt images are stored in Supabase Storage instead of the API container's local disk, which is wiped on every redeploy/restart on Render's free tier. Verified live: uploaded a photo through the production API, confirmed the returned URL is a real public Supabase Storage URL, and confirmed it serves the exact uploaded bytes.
+- `config.PublicBaseURL` now falls back to Render's auto-injected `RENDER_EXTERNAL_URL` when not set explicitly, so image URLs resolve correctly without needing to know the assigned Render URL in advance.
+
 ## v2.0.0 — 2026-09-06
 
 The full v2.0 milestone (see [docs/warranty-tracker-v2-scope.md](docs/warranty-tracker-v2-scope.md)) — 6 of 7 scoped issues shipped and live-verified against real accounts/credentials; the 7th intentionally left open ([#7](https://github.com/OrSasson1407/warranty-keeper/issues/7), see below).
