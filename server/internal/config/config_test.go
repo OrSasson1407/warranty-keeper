@@ -15,6 +15,7 @@ func clearAllEnv(t *testing.T) {
 		"PORT", "APP_ENV", "DATABASE_URL", "JWT_SECRET",
 		"UPLOADS_DIR", "PUBLIC_BASE_URL", "FIREBASE_CREDENTIALS_FILE",
 		"ANTHROPIC_API_KEY", "ANTHROPIC_OCR_MODEL",
+		"GEMINI_API_KEY", "GEMINI_OCR_MODEL",
 	} {
 		t.Setenv(key, "")
 	}
@@ -51,6 +52,12 @@ func TestLoad_DefaultsWhenNoEnvVarsSet(t *testing.T) {
 	if cfg.AnthropicOCRModel != "claude-haiku-4-5-20251001" {
 		t.Errorf("AnthropicOCRModel = %q, want the documented default", cfg.AnthropicOCRModel)
 	}
+	if cfg.GeminiAPIKey != "" {
+		t.Errorf("GeminiAPIKey = %q, want empty by default", cfg.GeminiAPIKey)
+	}
+	if cfg.GeminiOCRModel != "gemini-2.0-flash" {
+		t.Errorf("GeminiOCRModel = %q, want the documented default", cfg.GeminiOCRModel)
+	}
 }
 
 func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
@@ -64,6 +71,8 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	t.Setenv("FIREBASE_CREDENTIALS_FILE", "/etc/firebase.json")
 	t.Setenv("ANTHROPIC_API_KEY", "sk-ant-test")
 	t.Setenv("ANTHROPIC_OCR_MODEL", "claude-sonnet-5")
+	t.Setenv("GEMINI_API_KEY", "gemini-test-key")
+	t.Setenv("GEMINI_OCR_MODEL", "gemini-1.5-pro")
 
 	cfg := config.Load()
 	if cfg.Port != "9999" {
@@ -92,6 +101,12 @@ func TestLoad_ReadsEnvVarsWhenSet(t *testing.T) {
 	}
 	if cfg.AnthropicOCRModel != "claude-sonnet-5" {
 		t.Errorf("AnthropicOCRModel = %q, want %q", cfg.AnthropicOCRModel, "claude-sonnet-5")
+	}
+	if cfg.GeminiAPIKey != "gemini-test-key" {
+		t.Errorf("GeminiAPIKey = %q, want %q", cfg.GeminiAPIKey, "gemini-test-key")
+	}
+	if cfg.GeminiOCRModel != "gemini-1.5-pro" {
+		t.Errorf("GeminiOCRModel = %q, want %q", cfg.GeminiOCRModel, "gemini-1.5-pro")
 	}
 }
 

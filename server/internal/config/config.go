@@ -13,6 +13,8 @@ type Config struct {
 	FirebaseCredsFile string
 	AnthropicAPIKey   string
 	AnthropicOCRModel string
+	GeminiAPIKey      string
+	GeminiOCRModel    string
 }
 
 func Load() Config {
@@ -27,6 +29,8 @@ func Load() Config {
 		FirebaseCredsFile: getEnv("FIREBASE_CREDENTIALS_FILE", ""),
 		AnthropicAPIKey:   getEnv("ANTHROPIC_API_KEY", ""),
 		AnthropicOCRModel: getEnv("ANTHROPIC_OCR_MODEL", "claude-haiku-4-5-20251001"),
+		GeminiAPIKey:      getEnv("GEMINI_API_KEY", ""),
+		GeminiOCRModel:    getEnv("GEMINI_OCR_MODEL", "gemini-2.0-flash"),
 	}
 }
 

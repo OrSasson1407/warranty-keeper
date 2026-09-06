@@ -31,7 +31,11 @@ func main() {
 	}
 
 	var ocrProvider ocr.Provider = ocr.NewStubProvider()
-	if cfg.AnthropicAPIKey != "" {
+	switch {
+	case cfg.GeminiAPIKey != "":
+		ocrProvider = ocr.NewGeminiProvider(cfg.GeminiAPIKey, cfg.GeminiOCRModel)
+		log.Printf("using Gemini OCR provider (model=%s)", cfg.GeminiOCRModel)
+	case cfg.AnthropicAPIKey != "":
 		ocrProvider = ocr.NewAnthropicProvider(cfg.AnthropicAPIKey, cfg.AnthropicOCRModel)
 		log.Printf("using Anthropic OCR provider (model=%s)", cfg.AnthropicOCRModel)
 	}
