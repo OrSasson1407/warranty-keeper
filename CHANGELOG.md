@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.0.2 — 2026-09-06
+
+Real OCR, several new mobile features, and server hardening — all previously tracked as Backlog items ([#10](https://github.com/OrSasson1407/warranty-keeper/issues/10), [#12](https://github.com/OrSasson1407/warranty-keeper/issues/12)–[#15](https://github.com/OrSasson1407/warranty-keeper/issues/15)).
+
+### Features
+
+- **Real OCR providers** — the OCR stub can now be swapped for a real vision-model-backed provider: `GeminiProvider` (free tier via Google AI Studio, no credit card required) or `AnthropicProvider` (Claude). Gemini takes priority when both are configured. Verified end-to-end against a real receipt image with the free Gemini tier.
+- **Dashboard analytics** — a summary card showing total value of covered products, count of warranties expiring within 30 days, and a per-category breakdown, computed client-side from existing data.
+- **Offline mode (read-only)** — the dashboard caches the last successful product list and falls back to it with a banner when the network is unavailable.
+- **Server-managed manufacturer contacts** — claim-screen contact info now comes from a `manufacturer_contacts` table via the API instead of a static bundled file, with a fallback to the receipt's OCR-parsed vendor when the product's brand field is blank.
+- **Calendar sync (tier 1)** — a button on the product detail screen adds a one-time all-day reminder to the device's calendar on the warranty expiry date.
+
+### Hardening
+
+- Push notification sends now retry with backoff (3 attempts) before falling through to the existing next-day retry.
+- The OCR call is now bounded by a 20-second timeout so a slow provider can't hang a receipt upload indefinitely.
+- OCR failures are now logged with the actual error instead of failing silently.
+
 ## v1.0.1 — 2026-09-05
 
 Small post-release fixes and repo hygiene, no user-facing feature changes.
