@@ -13,8 +13,12 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api, ApiError } from '../api/client';
-import type { Product } from '../api/types';
-import { getManufacturerContact } from '../data/manufacturerContacts';
+import type { ManufacturerContact, Product } from '../api/types';
+import {
+  getManufacturerContact,
+  loadManufacturerContacts,
+  type ManufacturerContactMap,
+} from '../data/manufacturerContacts';
 import { colors } from '../theme/colors';
 import { warrantyStatus } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
@@ -24,12 +28,31 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Claim'>;
 export default function ClaimScreen({ navigation, route }: Props) {
   const { productId } = route.params;
   const [product, setProduct] = useState<Product | null>(null);
+  const [contacts, setContacts] = useState<ManufacturerContactMap>({});
+  const [vendorContact, setVendorContact] = useState<ManufacturerContact | null>(null);
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api.getProduct(productId).then(setProduct);
+    loadManufacturerContacts().then(setContacts);
   }, [productId]);
+
+  // Fall back to the receipt's parsed vendor when the product's own brand
+  // field doesn't match a known contact (e.g. the user never filled it in).
+  useEffect(() => {
+    if (!product?.receipt_id || getManufacturerContact(contacts, product.brand)) return;
+    api
+      .getReceipt(product.receipt_id)
+      .then((receipt) => {
+        if (receipt.parsed_vendor) {
+          setVendorContact(getManufacturerContact(contacts, receipt.parsed_vendor));
+        }
+      })
+      .catch(() => {
+        /* no receipt data available -- fall through to the generic contact message */
+      });
+  }, [product, contacts]);
 
   const onSave = async () => {
     if (!description.trim()) {
@@ -56,7 +79,7 @@ export default function ClaimScreen({ navigation, route }: Props) {
   }
 
   const inWarranty = warrantyStatus(product.warranty_expires_at) !== 'expired';
-  const contact = getManufacturerContact(product.brand);
+  const contact = getManufacturerContact(contacts, product.brand) ?? vendorContact;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

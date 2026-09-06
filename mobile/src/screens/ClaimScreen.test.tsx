@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Linking } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
@@ -7,12 +8,21 @@ import type { Product } from '../api/types';
 import { createMockNavigation, createMockRoute } from '../testUtils/navigation';
 
 jest.mock('../api/client', () => ({
-  api: { getProduct: jest.fn(), createClaim: jest.fn() },
+  api: {
+    getProduct: jest.fn(),
+    createClaim: jest.fn(),
+    getReceipt: jest.fn(),
+    listManufacturerContacts: jest.fn(),
+  },
   ApiError: jest.requireActual('../api/client').ApiError,
 }));
 
 const mockGetProduct = api.getProduct as jest.Mock;
 const mockCreateClaim = api.createClaim as jest.Mock;
+const mockGetReceipt = api.getReceipt as jest.Mock;
+const mockListManufacturerContacts = api.listManufacturerContacts as jest.Mock;
+
+const tornado = { brand: 'טורנדו', phone: '1-700-505-105', website: 'https://www.tornado.co.il' };
 
 function product(overrides: Partial<Product> = {}): Product {
   return {
@@ -34,8 +44,12 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  jest.clearAllMocks();
   mockGetProduct.mockResolvedValue(product());
+  mockListManufacturerContacts.mockResolvedValue([tornado]);
+  mockGetReceipt.mockRejectedValue(new Error('not used in most tests'));
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
 });
@@ -74,6 +88,33 @@ describe('ClaimScreen', () => {
     mockGetProduct.mockResolvedValue(product({ brand: 'מותג לא מוכר' }));
     renderScreen();
     expect(await screen.findByText(/אין לנו פרטי קשר ליצרן זה עדיין/)).toBeTruthy();
+  });
+
+  it('falls back to the receipt-parsed vendor when the brand field is blank', async () => {
+    mockGetProduct.mockResolvedValue(product({ brand: '', receipt_id: 'r1' }));
+    mockGetReceipt.mockResolvedValue({
+      id: 'r1',
+      household_id: 'h1',
+      image_url: '',
+      raw_ocr_text: '',
+      parsed_vendor: 'טורנדו',
+      parsed_date: null,
+      parsed_amount: null,
+      status: 'processed',
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+    });
+
+    renderScreen();
+
+    expect(await screen.findByText(/שירות לקוחות.*1-700-505-105/)).toBeTruthy();
+  });
+
+  it('does not fetch the receipt when the brand already resolves to a known contact', async () => {
+    renderScreen(); // default product has brand: 'טורנדו', a known contact
+    await screen.findByText(/שירות לקוחות טורנדו/);
+
+    expect(mockGetReceipt).not.toHaveBeenCalled();
   });
 
   it('calls Linking.openURL with the phone number when the contact line is pressed', async () => {

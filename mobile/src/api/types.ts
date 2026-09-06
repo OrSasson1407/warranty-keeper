@@ -73,6 +73,25 @@ export interface WarrantyResolution {
   source: string;
 }
 
+export interface ManufacturerContact {
+  brand: string;
+  phone: string;
+  website: string;
+}
+
+export interface Receipt {
+  id: string;
+  household_id: string;
+  image_url: string;
+  raw_ocr_text: string;
+  parsed_vendor: string;
+  parsed_date: string | null;
+  parsed_amount: number | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApiError {
   error: string;
 }

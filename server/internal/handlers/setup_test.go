@@ -75,6 +75,7 @@ func newTestSetup(t *testing.T) *testSetup {
 	if err := db.AutoMigrate(
 		&models.Household{}, &models.User{}, &models.Product{},
 		&models.Receipt{}, &models.WarrantyRule{}, &models.WarrantyClaim{},
+		&models.ManufacturerContact{},
 	); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
@@ -103,6 +104,7 @@ func newTestSetup(t *testing.T) *testSetup {
 	authed.POST("/products/:id/claims", h.CreateClaim)
 	authed.GET("/products/:id/claims", h.ListClaims)
 	authed.GET("/households/me", h.GetMyHousehold)
+	authed.GET("/manufacturer-contacts", h.ListManufacturerContacts)
 
 	token, err := auth.GenerateAccessToken(testJWTSecret, user.ID, household.ID)
 	if err != nil {

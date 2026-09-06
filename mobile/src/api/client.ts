@@ -3,7 +3,9 @@ import * as tokenStore from './tokenStore';
 import type {
   AuthResponse,
   Household,
+  ManufacturerContact,
   Product,
+  Receipt,
   ReceiptDraft,
   WarrantyClaim,
   WarrantyResolution,
@@ -123,4 +125,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ expo_push_token: expoPushToken }),
     }),
+
+  getReceipt: (id: string) => request<Receipt>(`/receipts/${id}`),
+
+  listManufacturerContacts: () => request<ManufacturerContact[]>('/manufacturer-contacts'),
 };

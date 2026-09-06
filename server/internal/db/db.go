@@ -27,5 +27,6 @@ func AutoMigrate(gdb *gorm.DB) error {
 		&models.WarrantyClaim{},
 		&models.NotificationLog{},
 		&models.DeviceToken{},
+		&models.ManufacturerContact{},
 	)
 }

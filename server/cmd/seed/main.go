@@ -57,6 +57,21 @@ var defaultWarrantyRules = []models.WarrantyRule{
 	{Category: "ארון בגדים", DurationMonths: 12},
 }
 
+// defaultManufacturerContacts is a starter set of brand support contacts,
+// carried over from the app's former static mobile/src/data/manufacturerContacts.ts
+// now that it's server-managed (see internal/models/manufacturer_contact.go).
+var defaultManufacturerContacts = []models.ManufacturerContact{
+	{Brand: "בוש", Phone: "03-1234567", Website: "https://www.bosch-home.co.il"},
+	{Brand: "Bosch", Phone: "03-1234567", Website: "https://www.bosch-home.co.il"},
+	{Brand: "סמסונג", Phone: "*6444", Website: "https://www.samsung.com/il/support"},
+	{Brand: "Samsung", Phone: "*6444", Website: "https://www.samsung.com/il/support"},
+	{Brand: "אלקטרה", Phone: "*2345", Website: "https://www.electra.co.il"},
+	{Brand: "טורנדו", Phone: "1-700-505-105", Website: "https://www.tornado.co.il"},
+	{Brand: "LG", Phone: "1-700-70-7092", Website: "https://www.lg.com/il"},
+	{Brand: "JBL", Phone: "1-800-20-11-42", Website: "https://he.jbl.com"},
+	{Brand: "Apple", Phone: "1-800-020-407", Website: "https://support.apple.com/he-il"},
+}
+
 func main() {
 	_ = godotenv.Load()
 	cfg := config.Load()
@@ -85,6 +100,24 @@ func main() {
 		}
 		created++
 	}
-
 	log.Printf("seed complete: %d new warranty_rules created (%d total in seed set)", created, len(defaultWarrantyRules))
+
+	contactsCreated := 0
+	for _, contact := range defaultManufacturerContacts {
+		var count int64
+		if err := gdb.Model(&models.ManufacturerContact{}).
+			Where("brand = ?", contact.Brand).
+			Count(&count).Error; err != nil {
+			log.Fatalf("failed to check existing manufacturer contact %q: %v", contact.Brand, err)
+		}
+		if count > 0 {
+			continue
+		}
+
+		if err := gdb.Create(&contact).Error; err != nil {
+			log.Fatalf("failed to seed manufacturer contact %q: %v", contact.Brand, err)
+		}
+		contactsCreated++
+	}
+	log.Printf("seed complete: %d new manufacturer_contacts created (%d total in seed set)", contactsCreated, len(defaultManufacturerContacts))
 }
