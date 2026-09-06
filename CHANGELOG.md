@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.0.0 — 2026-09-06
+
+The full v2.0 milestone (see [docs/warranty-tracker-v2-scope.md](docs/warranty-tracker-v2-scope.md)) — 6 of 7 scoped issues shipped and live-verified against real accounts/credentials; the 7th intentionally left open ([#7](https://github.com/OrSasson1407/warranty-keeper/issues/7), see below).
+
+### Features
+
+- **Google Sign-In** ([#6](https://github.com/OrSasson1407/warranty-keeper/issues/6)) — sign in or register with a Google account as an alternative to email/password. Verified end-to-end with a real Google Cloud OAuth client and a real account: new-account creation, household creation, and token issuance all confirmed live.
+- **Gmail integration** ([#3](https://github.com/OrSasson1407/warranty-keeper/issues/3)) — optional, revocable Gmail connection that scans for order-confirmation emails from a small retailer allowlist (Amazon, KSP, איקאה) and feeds matches into the existing receipt-confirm flow. Tokens are encrypted at rest. Verified live: real OAuth connection, real encrypted token storage, and a real scan run against a connected inbox with zero errors.
+- **Premium / freemium tier** ([#5](https://github.com/OrSasson1407/warranty-keeper/issues/5)) — free tier capped at 20 products; in-app upgrade unlocks unlimited products.
+- **Multi-tier expiry notifications** ([#4](https://github.com/OrSasson1407/warranty-keeper/issues/4)) — warnings at 30/14/3 days before expiry (previously a single 30-day warning), plus an annual per-household summary.
+- **Advanced search & filtering** ([#8](https://github.com/OrSasson1407/warranty-keeper/issues/8)) — filter the product list by room, category, warranty status, and price range, combinable with the existing text search.
+- **Total-cost-of-ownership tracking** ([#9](https://github.com/OrSasson1407/warranty-keeper/issues/9)) — log repair/maintenance costs against a product and see a running total alongside the purchase price.
+- **Community warranty-rule correction** ([#7](https://github.com/OrSasson1407/warranty-keeper/issues/7), partial) — a "does this warranty period look wrong?" report action on the product detail screen, landing in a reviewable queue. The other half of #7 — expanding `warranty_rules` coverage — is intentionally deferred: it needs real MVP usage data (which categories most often fall back to the uncertain 12-month default) that doesn't exist yet, so #7 stays open rather than shipping guessed-at categories.
+
 ## v1.0.2 — 2026-09-06
 
 Real OCR, several new mobile features, and server hardening — all previously tracked as Backlog items ([#10](https://github.com/OrSasson1407/warranty-keeper/issues/10), [#12](https://github.com/OrSasson1407/warranty-keeper/issues/12)–[#15](https://github.com/OrSasson1407/warranty-keeper/issues/15)).
