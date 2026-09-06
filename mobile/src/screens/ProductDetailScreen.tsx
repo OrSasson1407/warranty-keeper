@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   ScrollView,
@@ -14,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api } from '../api/client';
 import type { Product, WarrantyClaim } from '../api/types';
+import { addWarrantyExpiryToCalendar } from '../calendar/syncWarrantyEvent';
 import StatusBadge from '../components/StatusBadge';
 import { colors } from '../theme/colors';
 import { daysUntil, formatHebrewDate } from '../utils/warrantyStatus';
@@ -32,6 +34,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   const [product, setProduct] = useState<Product | null>(null);
   const [claims, setClaims] = useState<WarrantyClaim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +63,19 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
 
   const days = daysUntil(product.warranty_expires_at);
 
+  const onAddToCalendar = async () => {
+    setAddingToCalendar(true);
+    try {
+      const ok = await addWarrantyExpiryToCalendar(product.name, product.warranty_expires_at);
+      Alert.alert(
+        ok ? 'נוסף ליומן' : 'לא ניתן להוסיף ליומן',
+        ok ? 'תזכורת לתפוגת האחריות נוספה ליומן המכשיר.' : 'נדרשת הרשאת יומן במכשיר.',
+      );
+    } finally {
+      setAddingToCalendar(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {product.photo_url ? (
@@ -86,6 +102,18 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
           <Text style={styles.uncertainNote}>תאריך משוער — ייתכן שקיימת אחריות שונה בפועל</Text>
         ) : null}
       </View>
+
+      <TouchableOpacity
+        style={styles.calendarButton}
+        onPress={onAddToCalendar}
+        disabled={addingToCalendar}
+      >
+        {addingToCalendar ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <Text style={styles.calendarButtonText}>📅 הוסף תזכורת ליומן</Text>
+        )}
+      </TouchableOpacity>
 
       {product.receipt_id && product.photo_url ? (
         <TouchableOpacity
@@ -146,6 +174,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   receiptButtonText: { color: colors.text, fontSize: 15 },
+  calendarButton: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  calendarButtonText: { color: colors.text, fontSize: 15 },
   claimCta: {
     backgroundColor: colors.danger,
     borderRadius: 12,

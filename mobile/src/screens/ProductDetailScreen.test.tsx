@@ -1,9 +1,10 @@
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import ProductDetailScreen from './ProductDetailScreen';
 import { api } from '../api/client';
 import type { Product, WarrantyClaim } from '../api/types';
+import { addWarrantyExpiryToCalendar } from '../calendar/syncWarrantyEvent';
 import { createMockNavigation, createMockRoute } from '../testUtils/navigation';
 
 jest.mock('@react-navigation/native', () => ({
@@ -17,9 +18,11 @@ jest.mock('@react-navigation/native', () => ({
 jest.mock('../api/client', () => ({
   api: { getProduct: jest.fn(), listClaims: jest.fn() },
 }));
+jest.mock('../calendar/syncWarrantyEvent', () => ({ addWarrantyExpiryToCalendar: jest.fn() }));
 
 const mockGetProduct = api.getProduct as jest.Mock;
 const mockListClaims = api.listClaims as jest.Mock;
+const mockAddToCalendar = addWarrantyExpiryToCalendar as jest.Mock;
 
 function product(overrides: Partial<Product> = {}): Product {
   return {
@@ -56,7 +59,9 @@ function claim(overrides: Partial<WarrantyClaim> = {}): WarrantyClaim {
 beforeEach(() => {
   mockGetProduct.mockResolvedValue(product());
   mockListClaims.mockResolvedValue([]);
+  mockAddToCalendar.mockResolvedValue(true);
   jest.spyOn(Linking, 'openURL').mockResolvedValue(true as any);
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -127,5 +132,25 @@ describe('ProductDetailScreen', () => {
     renderScreen();
     await screen.findByText('מזגן טורנדו');
     expect(screen.queryByText('🧾 צפה בקבלה')).toBeNull();
+  });
+
+  it('adds a calendar reminder and confirms success when "הוסף תזכורת ליומן" is pressed', async () => {
+    renderScreen();
+    fireEvent.press(await screen.findByText('📅 הוסף תזכורת ליומן'));
+
+    await waitFor(() =>
+      expect(mockAddToCalendar).toHaveBeenCalledWith('מזגן טורנדו', '2028-01-01'),
+    );
+    await waitFor(() => expect(Alert.alert).toHaveBeenCalledWith('נוסף ליומן', expect.any(String)));
+  });
+
+  it('shows a failure alert when adding to the calendar is not possible', async () => {
+    mockAddToCalendar.mockResolvedValue(false);
+    renderScreen();
+    fireEvent.press(await screen.findByText('📅 הוסף תזכורת ליומן'));
+
+    await waitFor(() =>
+      expect(Alert.alert).toHaveBeenCalledWith('לא ניתן להוסיף ליומן', expect.any(String)),
+    );
   });
 });
