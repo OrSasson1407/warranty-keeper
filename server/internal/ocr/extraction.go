@@ -8,7 +8,7 @@ import (
 // extractionPrompt is shared by every vision-model-backed Provider (Anthropic,
 // Gemini, ...) -- the extraction contract doesn't depend on which model reads
 // the image.
-const extractionPrompt = `You are reading a photo of a store receipt. Respond with ONLY a single JSON object (no markdown fences, no other text) with exactly these fields:
+const extractionPrompt = `You are reading a store receipt, which may be a photo or a scanned/digital PDF document. Respond with ONLY a single JSON object (no markdown fences, no other text) with exactly these fields:
 {
   "vendor": string (the store/vendor name as printed, or "" if unreadable),
   "date": string in YYYY-MM-DD format (the purchase date), or null if unreadable,
@@ -39,9 +39,14 @@ func extractJSONObject(text string) string {
 	return text[start : end+1]
 }
 
-func detectImageMediaType(imageBytes []byte) string {
-	contentType := http.DetectContentType(imageBytes)
+// detectMediaType sniffs the MIME type of an uploaded receipt file -- either
+// an image (photo/screenshot) or a PDF document, both of which Gemini and
+// Claude can read natively as vision-model input.
+func detectMediaType(fileBytes []byte) string {
+	contentType := http.DetectContentType(fileBytes)
 	switch {
+	case strings.Contains(contentType, "pdf"):
+		return "application/pdf"
 	case strings.Contains(contentType, "png"):
 		return "image/png"
 	case strings.Contains(contentType, "gif"):
@@ -51,4 +56,10 @@ func detectImageMediaType(imageBytes []byte) string {
 	default:
 		return "image/jpeg"
 	}
+}
+
+// isPDFMediaType reports whether a media type returned by detectMediaType is
+// the PDF document type rather than an image type.
+func isPDFMediaType(mediaType string) bool {
+	return mediaType == "application/pdf"
 }

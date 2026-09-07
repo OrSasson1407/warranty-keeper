@@ -104,7 +104,7 @@ func (p *GeminiProvider) parseOnce(ctx context.Context, imageBytes []byte) (Pars
 			{
 				Parts: []geminiPart{
 					{InlineData: &geminiInlineData{
-						MimeType: detectImageMediaType(imageBytes),
+						MimeType: detectMediaType(imageBytes),
 						Data:     base64.StdEncoding.EncodeToString(imageBytes),
 					}},
 					{Text: extractionPrompt},

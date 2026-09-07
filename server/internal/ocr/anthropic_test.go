@@ -124,7 +124,7 @@ func TestParse_ReturnsErrorWhenServerUnreachable(t *testing.T) {
 	}
 }
 
-func TestDetectImageMediaType(t *testing.T) {
+func TestDetectMediaType(t *testing.T) {
 	cases := []struct {
 		name  string
 		bytes []byte
@@ -133,12 +133,41 @@ func TestDetectImageMediaType(t *testing.T) {
 		{"JPEG", []byte{0xFF, 0xD8, 0xFF, 0xE0}, "image/jpeg"},
 		{"PNG", []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, "image/png"},
 		{"GIF", []byte("GIF89a"), "image/gif"},
+		{"PDF", []byte("%PDF-1.7\n"), "application/pdf"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := detectImageMediaType(tc.bytes); got != tc.want {
-				t.Errorf("detectImageMediaType(%s) = %q, want %q", tc.name, got, tc.want)
+			if got := detectMediaType(tc.bytes); got != tc.want {
+				t.Errorf("detectMediaType(%s) = %q, want %q", tc.name, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestParse_UsesDocumentContentTypeForPDF(t *testing.T) {
+	var capturedType string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var reqBody anthropicMessageRequest
+		json.NewDecoder(r.Body).Decode(&reqBody)
+		capturedType = reqBody.Messages[0].Content[0].Type
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"content": []map[string]any{
+				{"type": "text", "text": `{"vendor":"","date":null,"amount":null,"item_description":"","confidence":0}`},
+			},
+		})
+	}))
+	defer server.Close()
+
+	p := NewAnthropicProvider("test-key", "claude-haiku-4-5-20251001")
+	p.baseURL = server.URL
+
+	pdfBytes := []byte("%PDF-1.7\n...")
+	_, err := p.Parse(context.Background(), pdfBytes)
+	if err != nil {
+		t.Fatalf("Parse returned an error: %v", err)
+	}
+	if capturedType != "document" {
+		t.Errorf("content type = %q, want %q", capturedType, "document")
 	}
 }

@@ -65,6 +65,12 @@ type anthropicResponse struct {
 }
 
 func (p *AnthropicProvider) Parse(ctx context.Context, imageBytes []byte) (ParsedReceipt, error) {
+	mediaType := detectMediaType(imageBytes)
+	contentType := "image"
+	if isPDFMediaType(mediaType) {
+		contentType = "document"
+	}
+
 	reqBody := anthropicMessageRequest{
 		Model:     p.model,
 		MaxTokens: 500,
@@ -73,10 +79,10 @@ func (p *AnthropicProvider) Parse(ctx context.Context, imageBytes []byte) (Parse
 				Role: "user",
 				Content: []anthropicContent{
 					{
-						Type: "image",
+						Type: contentType,
 						Source: &anthropicImage{
 							Type:      "base64",
-							MediaType: detectImageMediaType(imageBytes),
+							MediaType: mediaType,
 							Data:      base64.StdEncoding.EncodeToString(imageBytes),
 						},
 					},
