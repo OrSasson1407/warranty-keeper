@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.1 — 2026-09-07
+
+Two real bugs found and fixed via physical-device testing (Expo Go) against the live production API — the receipt-photo flow was fully broken on-device despite working in prior curl/web testing.
+
+### Fixes
+
+- **Receipt photo upload failed on-device** — newer React Native/Hermes `fetch` rejects the classic `{uri,name,type}` FormData shorthand with `Unsupported FormDataPart implementation`; every camera capture failed before it left the phone. Fixed by reading the image into a real `Blob` before appending it to `FormData`.
+- **OCR fields silently came back empty** — Google's Gemini free tier intermittently returns a transient "currently experiencing high demand" overload error, which failed the whole scan with no retry. `GeminiProvider.Parse` now retries up to 3 times on transient errors, and the request-level OCR timeout was raised from 20s to 40s to give retries room to run. Verified live: a real receipt photo, retried once due to a genuine overload error, still came back with fully correct vendor/date/amount/category.
+- Also restored production's `GEMINI_API_KEY`, which had gone missing since the v2.1.0 deploy, causing OCR to silently fall back to the stub (empty-fields) provider.
+
 ## v2.1.0 — 2026-09-06
 
 First real production deployment — the API is now live on the public internet with a persistent database and persistent file storage, not just running locally.
