@@ -14,12 +14,12 @@ import (
 	"warrantykeeper/server/internal/warranty"
 )
 
-// ocrTimeout bounds how long a single OCR call can block the upload request.
-// The stub returns instantly, but a real provider (see internal/ocr.AnthropicProvider)
-// makes a real network call -- without a bound, a slow or hanging provider
-// would hang the HTTP request indefinitely instead of falling back to manual
-// entry the way a fast provider error already does.
-const ocrTimeout = 20 * time.Second
+// ocrTimeout bounds how long OCR (including provider-level retries, see
+// GeminiProvider) can block the upload request. The stub returns instantly,
+// but a real provider makes real network calls -- without a bound, a slow or
+// hanging provider would hang the HTTP request indefinitely instead of
+// falling back to manual entry the way a fast provider error already does.
+const ocrTimeout = 40 * time.Second
 
 type receiptDraftResponse struct {
 	ReceiptID         string   `json:"receipt_id"`

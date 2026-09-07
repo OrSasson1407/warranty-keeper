@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -63,7 +64,41 @@ type geminiResponse struct {
 	} `json:"error"`
 }
 
+// geminiMaxAttempts bounds retries for transient errors like Gemini's
+// "currently experiencing high demand" overload response, which is common
+// enough on the free tier to be worth a quick retry rather than failing the
+// whole receipt upload.
+const geminiMaxAttempts = 3
+
 func (p *GeminiProvider) Parse(ctx context.Context, imageBytes []byte) (ParsedReceipt, error) {
+	var lastErr error
+	for attempt := 1; attempt <= geminiMaxAttempts; attempt++ {
+		result, err := p.parseOnce(ctx, imageBytes)
+		if err == nil {
+			return result, nil
+		}
+		lastErr = err
+		if !isTransientGeminiError(err) || attempt == geminiMaxAttempts {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return ParsedReceipt{}, ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+	return ParsedReceipt{}, lastErr
+}
+
+func isTransientGeminiError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "high demand") ||
+		strings.Contains(msg, "overloaded") ||
+		strings.Contains(msg, "unavailable") ||
+		strings.Contains(msg, "try again")
+}
+
+func (p *GeminiProvider) parseOnce(ctx context.Context, imageBytes []byte) (ParsedReceipt, error) {
 	reqBody := geminiGenerateRequest{
 		Contents: []geminiContent{
 			{

@@ -88,10 +88,13 @@ export const api = {
 
   upgradeHousehold: () => request<{ tier: string }>('/households/me/upgrade', { method: 'POST' }),
 
-  uploadReceipt: (file: { uri: string; name: string; type: string }) => {
+  uploadReceipt: async (file: { uri: string; name: string; type: string }) => {
+    // The classic RN {uri,name,type} FormData shorthand throws "Unsupported
+    // FormDataPart implementation" on newer RN/Hermes fetch — convert to a
+    // real Blob instead, which every fetch implementation accepts.
+    const blob = await (await fetch(file.uri)).blob();
     const form = new FormData();
-    // React Native's FormData accepts this {uri,name,type} shape directly.
-    form.append('image', file as unknown as Blob);
+    form.append('image', blob, file.name);
     return request<ReceiptDraft>('/receipts', { method: 'POST', body: form });
   },
 

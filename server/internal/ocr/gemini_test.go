@@ -131,3 +131,83 @@ func TestGeminiParse_ReturnsErrorWhenServerUnreachable(t *testing.T) {
 		t.Fatal("expected an error when the request itself fails")
 	}
 }
+
+func TestGeminiParse_RetriesOnTransientOverloadErrorAndSucceeds(t *testing.T) {
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		if requests == 1 {
+			json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{"message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."},
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"candidates": []map[string]any{
+				{"content": map[string]any{"parts": []map[string]any{{"text": `{"vendor":"KSP","date":null,"amount":null,"item_description":"","confidence":0.5}`}}}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	p := NewGeminiProvider("test-key", "gemini-2.0-flash")
+	p.baseURL = server.URL
+
+	result, err := p.Parse(context.Background(), []byte{0xFF, 0xD8, 0xFF})
+	if err != nil {
+		t.Fatalf("Parse returned an error: %v", err)
+	}
+	if result.Vendor != "KSP" {
+		t.Errorf("Vendor = %q, want %q", result.Vendor, "KSP")
+	}
+	if requests != 2 {
+		t.Errorf("requests = %d, want 2 (one failure, one retry that succeeds)", requests)
+	}
+}
+
+func TestGeminiParse_GivesUpAfterMaxAttemptsOnPersistentOverload(t *testing.T) {
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "The model is overloaded. Please try again later."},
+		})
+	}))
+	defer server.Close()
+
+	p := NewGeminiProvider("test-key", "gemini-2.0-flash")
+	p.baseURL = server.URL
+
+	_, err := p.Parse(context.Background(), []byte{0xFF, 0xD8, 0xFF})
+	if err == nil {
+		t.Fatal("expected an error when every attempt is overloaded")
+	}
+	if requests != geminiMaxAttempts {
+		t.Errorf("requests = %d, want %d", requests, geminiMaxAttempts)
+	}
+}
+
+func TestGeminiParse_DoesNotRetryNonTransientErrors(t *testing.T) {
+	var requests int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "API key not valid"},
+		})
+	}))
+	defer server.Close()
+
+	p := NewGeminiProvider("bad-key", "gemini-2.0-flash")
+	p.baseURL = server.URL
+
+	_, err := p.Parse(context.Background(), []byte{0xFF, 0xD8, 0xFF})
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if requests != 1 {
+		t.Errorf("requests = %d, want 1 (non-transient errors should not be retried)", requests)
+	}
+}

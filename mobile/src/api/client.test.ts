@@ -195,11 +195,16 @@ describe('listProducts', () => {
 });
 
 describe('uploadReceipt', () => {
-  it('sends a multipart FormData body without a manually-set Content-Type', async () => {
-    (globalThis.fetch as jest.Mock).mockResolvedValueOnce(jsonResponse(200, { receipt_id: 'r1' }));
+  it('reads the file uri into a Blob and sends it as multipart FormData without a manually-set Content-Type', async () => {
+    const fakeBlob = new Blob(['fake-image-bytes'], { type: 'image/jpeg' });
+    (globalThis.fetch as jest.Mock)
+      .mockResolvedValueOnce({ blob: async () => fakeBlob })
+      .mockResolvedValueOnce(jsonResponse(200, { receipt_id: 'r1' }));
+
     await api.uploadReceipt({ uri: 'file:///x.jpg', name: 'x.jpg', type: 'image/jpeg' });
 
-    const [, options] = (globalThis.fetch as jest.Mock).mock.calls[0];
+    expect((globalThis.fetch as jest.Mock).mock.calls[0][0]).toBe('file:///x.jpg');
+    const [, options] = (globalThis.fetch as jest.Mock).mock.calls[1];
     expect(options.body).toBeInstanceOf(FormData);
     expect(options.headers['Content-Type']).toBeUndefined();
   });
