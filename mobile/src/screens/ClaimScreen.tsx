@@ -20,6 +20,7 @@ import {
   type ManufacturerContactMap,
 } from '../data/manufacturerContacts';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import { warrantyStatus } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
 
@@ -95,6 +96,7 @@ export default function ClaimScreen({ navigation, route }: Props) {
         value={description}
         onChangeText={setDescription}
         placeholder="תארו את התקלה..."
+        placeholderTextColor={colors.outline}
         textAlignVertical="top"
       />
 
@@ -143,33 +145,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text, textAlign: 'right' },
-  label: { fontSize: 15, fontWeight: '600', color: colors.text, textAlign: 'right', marginTop: 8 },
+  title: { ...typography.headlineSm, color: colors.text, textAlign: 'right' },
+  label: { ...typography.bodyLg, color: colors.text, textAlign: 'right', marginTop: 8, fontFamily: fonts.bodyMdSemiBold },
   textarea: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     padding: 12,
-    fontSize: 15,
+    color: colors.text,
+    ...typography.bodyLg,
     minHeight: 110,
     textAlign: 'right',
   },
   contactBox: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceContainer,
     padding: 14,
     gap: 8,
     marginTop: 8,
   },
-  contactHeading: { fontSize: 14, fontWeight: '700', color: colors.textMuted, textAlign: 'right' },
-  contactLine: { fontSize: 14, color: colors.primary, textAlign: 'right', lineHeight: 20 },
+  contactHeading: { ...typography.labelSm, color: colors.outline, textAlign: 'right' },
+  contactLine: { ...typography.bodyMd, color: colors.primary, textAlign: 'right' },
   saveButton: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  saveButtonText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: colors.primaryText, ...typography.headlineSm, fontFamily: fonts.headlineSm },
 });

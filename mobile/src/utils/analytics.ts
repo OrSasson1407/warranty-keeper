@@ -9,6 +9,8 @@ export interface CategoryCount {
 export interface DashboardAnalytics {
   coveredValue: number;
   expiringSoonCount: number;
+  okCount: number;
+  totalCount: number;
   byCategory: CategoryCount[];
 }
 
@@ -20,6 +22,7 @@ const UNCATEGORIZED_LABEL = 'ללא קטגוריה';
 export function computeAnalytics(products: Product[]): DashboardAnalytics {
   let coveredValue = 0;
   let expiringSoonCount = 0;
+  let okCount = 0;
   const countByCategory = new Map<string, number>();
 
   for (const p of products) {
@@ -30,6 +33,9 @@ export function computeAnalytics(products: Product[]): DashboardAnalytics {
     if (status === 'warning') {
       expiringSoonCount += 1;
     }
+    if (status === 'ok') {
+      okCount += 1;
+    }
     const label = p.category || UNCATEGORIZED_LABEL;
     countByCategory.set(label, (countByCategory.get(label) ?? 0) + 1);
   }
@@ -38,5 +44,5 @@ export function computeAnalytics(products: Product[]): DashboardAnalytics {
     .map(([category, count]) => ({ category, count }))
     .sort((a, b) => b.count - a.count);
 
-  return { coveredValue, expiringSoonCount, byCategory };
+  return { coveredValue, expiringSoonCount, okCount, totalCount: products.length, byCategory };
 }

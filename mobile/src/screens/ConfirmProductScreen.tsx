@@ -16,6 +16,7 @@ import { api, ApiError } from '../api/client';
 import SelectField from '../components/SelectField';
 import { CATEGORIES, ROOMS } from '../data/categories';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import { formatHebrewDate } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
 
@@ -83,7 +84,10 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       if (e instanceof ApiError && e.status === 402) {
         Alert.alert('הגעתם למגבלת התוכנית החינמית', e.message, [
           { text: 'ביטול', style: 'cancel' },
-          { text: 'שדרגו ל-Premium', onPress: () => navigation.navigate('Settings') },
+          {
+            text: 'שדרגו ל-Premium',
+            onPress: () => navigation.navigate('Tabs', { screen: 'SettingsTab' }),
+          },
         ]);
       } else {
         Alert.alert('שגיאה בשמירה', e instanceof ApiError ? e.message : 'נסו שוב');
@@ -98,7 +102,16 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
       <Text style={styles.heading}>{draft ? 'מצאנו את זה:' : 'הזנה ידנית'}</Text>
 
       {draft?.image_url ? (
-        <Image source={{ uri: draft.image_url }} style={styles.receiptImage} resizeMode="cover" />
+        <View style={styles.receiptImageWrap}>
+          <Image source={{ uri: draft.image_url }} style={styles.receiptImage} resizeMode="cover" />
+          {draft.confidence > 0 ? (
+            <View style={styles.confidenceBadge}>
+              <Text style={styles.confidenceBadgeText}>
+                זוהה בביטחון {Math.round(draft.confidence * 100)}%
+              </Text>
+            </View>
+          ) : null}
+        </View>
       ) : null}
 
       {draft && draft.confidence < 0.5 ? (
@@ -107,12 +120,15 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
         </Text>
       ) : null}
 
+      <View style={styles.sectionAccent} />
+
       <Field label="שם מוצר">
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
           placeholder="לדוגמה: מזגן טורנדו"
+          placeholderTextColor={colors.outline}
         />
       </Field>
 
@@ -124,36 +140,46 @@ export default function ConfirmProductScreen({ navigation, route }: Props) {
           value={brand}
           onChangeText={setBrand}
           placeholder="לדוגמה: טורנדו"
+          placeholderTextColor={colors.outline}
         />
       </Field>
 
-      <Field label="תאריך קנייה (YYYY-MM-DD)">
-        <TextInput
-          style={styles.input}
-          value={purchaseDate}
-          onChangeText={setPurchaseDate}
-          placeholder={todayISO()}
-        />
-      </Field>
-
-      <Field label="מחיר (₪, אופציונלי)">
-        <TextInput
-          style={styles.input}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
-      </Field>
+      <View style={styles.row}>
+        <View style={styles.rowField}>
+          <Field label="תאריך קנייה">
+            <TextInput
+              style={styles.input}
+              value={purchaseDate}
+              onChangeText={setPurchaseDate}
+              placeholder={todayISO()}
+              placeholderTextColor={colors.outline}
+            />
+          </Field>
+        </View>
+        <View style={styles.rowField}>
+          <Field label="מחיר (₪)">
+            <TextInput
+              style={styles.input}
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+              placeholderTextColor={colors.outline}
+            />
+          </Field>
+        </View>
+      </View>
 
       <SelectField label="חדר" value={room} options={ROOMS} onChange={setRoom} />
 
       <View style={styles.warrantyBox}>
+        <View style={styles.warrantyAccent} />
         {resolving ? (
-          <ActivityIndicator />
+          <ActivityIndicator color={colors.primary} />
         ) : (
           <>
+            <Text style={styles.warrantyLabel}>אחריות עד:</Text>
             <Text style={styles.warrantyText}>
-              אחריות עד: {warrantyExpiresAt ? formatHebrewDate(warrantyExpiresAt) : '—'}
+              {warrantyExpiresAt ? formatHebrewDate(warrantyExpiresAt) : '—'}
               {uncertain ? ' (משוער)' : ''}
             </Text>
             {uncertain ? (
@@ -188,44 +214,57 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 14, paddingBottom: 40 },
-  heading: { fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'right' },
-  receiptImage: { width: '100%', height: 160, borderRadius: 12, backgroundColor: colors.border },
-  lowConfidenceNote: {
-    backgroundColor: colors.statusWarningBg,
-    color: colors.statusWarning,
-    padding: 10,
-    borderRadius: 8,
-    textAlign: 'right',
-    fontSize: 13,
+  heading: { ...typography.headlineLg, color: colors.text, textAlign: 'right' },
+  receiptImageWrap: { position: 'relative' },
+  receiptImage: { width: '100%', height: 160, backgroundColor: colors.surfaceContainerHigh },
+  confidenceBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: colors.tertiaryContainer,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
+  confidenceBadgeText: { ...typography.labelSm, color: colors.onTertiaryContainer, textTransform: 'none' },
+  lowConfidenceNote: {
+    backgroundColor: colors.secondaryContainer,
+    color: colors.onSecondaryContainer,
+    padding: 10,
+    textAlign: 'right',
+    ...typography.bodySm,
+  },
+  sectionAccent: { height: 1, backgroundColor: colors.border },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, color: colors.textMuted, textAlign: 'right' },
+  fieldLabel: { ...typography.labelSm, color: colors.outline, textAlign: 'right' },
+  row: { flexDirection: 'row-reverse', gap: 12 },
+  rowField: { flex: 1 },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    color: colors.text,
+    ...typography.bodyLg,
     textAlign: 'right',
   },
   warrantyBox: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceContainer,
     padding: 14,
     borderWidth: 1,
     borderColor: colors.border,
     gap: 6,
+    position: 'relative',
   },
-  warrantyText: { fontSize: 16, fontWeight: '600', color: colors.text, textAlign: 'right' },
-  warrantyHint: { fontSize: 12, color: colors.textMuted, textAlign: 'right' },
+  warrantyAccent: { position: 'absolute', top: 0, right: 0, left: 0, height: 2, backgroundColor: colors.tertiary },
+  warrantyLabel: { ...typography.labelSm, color: colors.outline, textAlign: 'right' },
+  warrantyText: { ...typography.headlineSm, color: colors.text, textAlign: 'right' },
+  warrantyHint: { ...typography.bodySm, color: colors.textMuted, textAlign: 'right' },
   saveButton: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  saveButtonText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
+  saveButtonText: { ...typography.headlineSm, color: colors.primaryText, fontFamily: fonts.headlineSm },
 });

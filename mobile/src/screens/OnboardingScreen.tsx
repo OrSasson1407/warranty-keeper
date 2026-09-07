@@ -12,6 +12,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import type { AuthStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
@@ -100,24 +101,22 @@ const styles = StyleSheet.create({
   slide: { alignItems: 'center', justifyContent: 'center', padding: 32 },
   emoji: { fontSize: 64, marginBottom: 24 },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.headlineLg,
     color: colors.text,
     textAlign: 'center',
     marginBottom: 12,
   },
-  body: { fontSize: 16, color: colors.textMuted, textAlign: 'center', lineHeight: 24 },
+  body: { ...typography.bodyLg, color: colors.textMuted, textAlign: 'center' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dot: { width: 8, height: 2, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.primary },
   footer: { padding: 24, gap: 16, alignItems: 'center' },
   primaryButton: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
     paddingVertical: 16,
     width: '100%',
     alignItems: 'center',
   },
-  primaryButtonText: { color: colors.primaryText, fontSize: 17, fontWeight: '600' },
-  secondaryText: { color: colors.textMuted, fontSize: 15 },
+  primaryButtonText: { color: colors.primaryText, ...typography.headlineSm, fontFamily: fonts.headlineSm },
+  secondaryText: { ...typography.bodyMd, color: colors.textMuted },
 });

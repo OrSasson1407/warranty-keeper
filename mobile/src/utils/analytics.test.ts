@@ -34,7 +34,23 @@ function product(overrides: Partial<Product>): Product {
 
 describe('computeAnalytics', () => {
   it('returns zeros for an empty product list', () => {
-    expect(computeAnalytics([])).toEqual({ coveredValue: 0, expiringSoonCount: 0, byCategory: [] });
+    expect(computeAnalytics([])).toEqual({
+      coveredValue: 0,
+      expiringSoonCount: 0,
+      okCount: 0,
+      totalCount: 0,
+      byCategory: [],
+    });
+  });
+
+  it('counts products currently in good standing (ok) and the total', () => {
+    const result = computeAnalytics([
+      product({ id: 'p1', warranty_expires_at: '2028-01-01' }), // ok
+      product({ id: 'p2', warranty_expires_at: '2026-09-10' }), // warning
+      product({ id: 'p3', warranty_expires_at: '2020-01-01' }), // expired
+    ]);
+    expect(result.okCount).toBe(1);
+    expect(result.totalCount).toBe(3);
   });
 
   it('sums the price of products that are not expired', () => {

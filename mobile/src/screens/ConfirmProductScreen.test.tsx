@@ -201,6 +201,6 @@ describe('ConfirmProductScreen', () => {
     // Simulate pressing the "שדרגו ל-Premium" button passed to Alert.alert.
     const buttons = (Alert.alert as jest.Mock).mock.calls[0][2];
     buttons[1].onPress();
-    expect(navigation.navigate).toHaveBeenCalledWith('Settings');
+    expect(navigation.navigate).toHaveBeenCalledWith('Tabs', { screen: 'SettingsTab' });
   });
 });

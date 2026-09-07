@@ -13,6 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import { ApiError } from '../api/client';
 import type { AuthStackParamList } from '../navigation/types';
 
@@ -59,12 +60,14 @@ export default function RegisterScreen({ navigation, route }: Props) {
         <TextInput
           style={styles.input}
           placeholder="שם מלא"
+          placeholderTextColor={colors.outline}
           value={fullName}
           onChangeText={setFullName}
         />
         <TextInput
           style={styles.input}
           placeholder="אימייל"
+          placeholderTextColor={colors.outline}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -73,6 +76,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
         <TextInput
           style={styles.input}
           placeholder="סיסמה (8 תווים לפחות)"
+          placeholderTextColor={colors.outline}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -80,6 +84,7 @@ export default function RegisterScreen({ navigation, route }: Props) {
         <TextInput
           style={styles.input}
           placeholder="קוד הזמנה (אופציונלי, אם מצטרפים למשק בית קיים)"
+          placeholderTextColor={colors.outline}
           autoCapitalize="characters"
           value={inviteCode}
           onChangeText={setInviteCode}
@@ -107,30 +112,28 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 24, gap: 12 },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.headlineLg,
     color: colors.text,
     marginBottom: 16,
     textAlign: 'right',
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    color: colors.text,
+    ...typography.bodyLg,
     textAlign: 'right',
   },
-  error: { color: colors.danger, textAlign: 'right' },
+  error: { color: colors.error, textAlign: 'right', ...typography.bodySm },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
-  link: { color: colors.primary, textAlign: 'center', marginTop: 8 },
+  buttonText: { color: colors.primaryText, ...typography.headlineSm, fontFamily: fonts.headlineSm },
+  link: { color: colors.primary, textAlign: 'center', marginTop: 8, ...typography.bodyMd },
 });

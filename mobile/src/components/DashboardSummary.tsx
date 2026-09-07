@@ -2,41 +2,52 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { DashboardAnalytics } from '../utils/analytics';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
 
 function formatILS(amount: number): string {
   return `₪${Math.round(amount).toLocaleString('he-IL')}`;
 }
 
 export default function DashboardSummary({ analytics }: { analytics: DashboardAnalytics }) {
-  const { coveredValue, expiringSoonCount, byCategory } = analytics;
-  const maxCount = byCategory.length > 0 ? byCategory[0].count : 1;
+  const { coveredValue, expiringSoonCount, okCount, totalCount, byCategory } = analytics;
+  const coveragePct = totalCount > 0 ? Math.round(((totalCount - expiringSoonCount) / totalCount) * 100) : 100;
 
   return (
     <View style={styles.container}>
-      <View style={styles.statsRow}>
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>{formatILS(coveredValue)}</Text>
-          <Text style={styles.statLabel}>שווי מוצרים באחריות</Text>
+      <View style={styles.accent} />
+
+      <View style={styles.headerRow}>
+        <Text style={styles.eyebrow}>סך שווי מוצרים מבוטחים</Text>
+      </View>
+      <View style={styles.valueRow}>
+        <Text style={styles.value}>{formatILS(coveredValue)}</Text>
+        <Text style={styles.coveragePct}>{coveragePct}% מכוסה</Text>
+      </View>
+
+      <View style={styles.split}>
+        <View style={styles.splitCell}>
+          <Text style={[styles.splitLabel, { color: colors.secondary }]}>קרוב לתפוגה</Text>
+          <View style={styles.splitValueRow}>
+            <Text style={[styles.splitValue, { color: colors.secondary }]}>{expiringSoonCount}</Text>
+            <Text style={styles.splitHint}>{'< 30 ימים'}</Text>
+          </View>
         </View>
-        <View style={styles.stat}>
-          <Text style={[styles.statValue, expiringSoonCount > 0 && styles.statValueWarning]}>
-            {expiringSoonCount}
-          </Text>
-          <Text style={styles.statLabel}>פגות תוקף ב-30 הימים הקרובים</Text>
+        <View style={styles.splitCell}>
+          <Text style={[styles.splitLabel, { color: colors.tertiary }]}>בתוקף מלא</Text>
+          <View style={styles.splitValueRow}>
+            <Text style={[styles.splitValue, { color: colors.tertiary }]}>{okCount}</Text>
+            <Text style={styles.splitHint}>תקין ויציב</Text>
+          </View>
         </View>
       </View>
 
       {byCategory.length > 0 ? (
-        <View style={styles.categories}>
-          {byCategory.map(({ category, count }) => (
-            <View key={category} style={styles.categoryRow}>
-              <Text style={styles.categoryLabel} numberOfLines={1}>
-                {category}
+        <View style={styles.chipsRow}>
+          {byCategory.slice(0, 3).map(({ category, count }) => (
+            <View key={category} style={styles.chip}>
+              <Text style={styles.chipText} numberOfLines={1}>
+                {category}: {count}
               </Text>
-              <View style={styles.barTrack}>
-                <View style={[styles.barFill, { width: `${(count / maxCount) * 100}%` }]} />
-              </View>
-              <Text style={styles.categoryCount}>{count}</Text>
             </View>
           ))}
         </View>
@@ -48,20 +59,27 @@ export default function DashboardSummary({ analytics }: { analytics: DashboardAn
 const styles = StyleSheet.create({
   container: {
     marginBottom: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    backgroundColor: colors.surfaceContainer,
+    padding: 16,
   },
-  statsRow: { flexDirection: 'row', gap: 12 },
-  stat: { flex: 1, alignItems: 'center', gap: 4 },
-  statValue: { fontSize: 18, fontWeight: '700', color: colors.text },
-  statValueWarning: { color: colors.statusWarning },
-  statLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
-  categories: { gap: 6, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
-  categoryRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8 },
-  categoryLabel: { width: 72, fontSize: 12, color: colors.text, textAlign: 'right' },
-  barTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.border },
-  barFill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  categoryCount: { width: 20, fontSize: 12, color: colors.textMuted, textAlign: 'left' },
+  accent: { position: 'absolute', top: 0, right: 0, left: 0, height: 2, backgroundColor: colors.primary },
+  headerRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', paddingBottom: 10 },
+  eyebrow: { ...typography.labelSm, color: colors.outline },
+  valueRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'baseline',
+    gap: 8,
+    paddingBottom: 12,
+  },
+  value: { ...typography.displayLg, color: colors.text },
+  coveragePct: { ...typography.labelSm, color: colors.tertiary, textTransform: 'none' },
+  split: { flexDirection: 'row', gap: 8, paddingBottom: 12 },
+  splitCell: { flex: 1, backgroundColor: colors.surfaceContainerHigh, padding: 8, gap: 8 },
+  splitLabel: { ...typography.labelSm, textAlign: 'right' },
+  splitValueRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'baseline' },
+  splitValue: { ...typography.headlineSm },
+  splitHint: { ...typography.labelSm, color: colors.outline, textTransform: 'none' },
+  chipsRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', paddingTop: 8, gap: 6 },
+  chip: { flex: 1, backgroundColor: colors.surfaceContainerLowest, paddingVertical: 6, paddingHorizontal: 8 },
+  chipText: { ...typography.labelSm, color: colors.textMuted, textTransform: 'none', textAlign: 'center' },
 });

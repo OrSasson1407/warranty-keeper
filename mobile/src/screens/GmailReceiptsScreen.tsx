@@ -13,6 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../api/client';
 import type { ReceiptDraft } from '../api/types';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
 import type { AppStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'GmailReceipts'>;
@@ -96,16 +97,15 @@ const styles = StyleSheet.create({
   },
   list: { padding: 16, gap: 12 },
   emptyContainer: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyText: { color: colors.textMuted, textAlign: 'center', fontSize: 15 },
+  emptyText: { color: colors.textMuted, textAlign: 'center', ...typography.bodyLg },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceContainer,
     padding: 14,
     gap: 4,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  vendor: { fontSize: 16, fontWeight: '700', color: colors.text, textAlign: 'right' },
-  meta: { fontSize: 14, color: colors.textMuted, textAlign: 'right' },
-  lowConfidence: { fontSize: 13, color: colors.statusWarning, textAlign: 'right', marginTop: 4 },
+  vendor: { ...typography.headlineSm, color: colors.text, textAlign: 'right' },
+  meta: { ...typography.bodyMd, color: colors.textMuted, textAlign: 'right' },
+  lowConfidence: { ...typography.bodySm, color: colors.secondary, textAlign: 'right', marginTop: 4 },
 });

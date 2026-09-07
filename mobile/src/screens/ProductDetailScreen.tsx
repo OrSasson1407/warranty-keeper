@@ -18,8 +18,9 @@ import { api, ApiError } from '../api/client';
 import type { Product, ProductCost, WarrantyClaim } from '../api/types';
 import { addWarrantyExpiryToCalendar } from '../calendar/syncWarrantyEvent';
 import StatusBadge from '../components/StatusBadge';
-import { colors } from '../theme/colors';
-import { daysUntil, formatHebrewDate } from '../utils/warrantyStatus';
+import { colors, statusAccent } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
+import { daysUntil, formatHebrewDate, warrantyStatus } from '../utils/warrantyStatus';
 import type { AppStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'ProductDetail'>;
@@ -68,13 +69,13 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
   if (loading || !product) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   const days = daysUntil(product.warranty_expires_at);
-
+  const accent = statusAccent(warrantyStatus(product.warranty_expires_at));
   const totalCost = (product.price ?? 0) + costs.reduce((sum, c) => sum + c.amount, 0);
 
   const onSaveCost = async () => {
@@ -127,54 +128,67 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {product.photo_url ? (
-        <Image source={{ uri: product.photo_url }} style={styles.image} resizeMode="cover" />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]}>
-          <Text style={{ fontSize: 40 }}>📦</Text>
-        </View>
-      )}
-
-      <Text style={styles.name}>{product.name}</Text>
-      <Text style={styles.meta}>
-        נקנה: {formatHebrewDate(product.purchase_date)}
-        {product.price ? ` | ₪${product.price.toLocaleString()}` : ''}
-      </Text>
-      {product.room ? <Text style={styles.meta}>חדר: {product.room}</Text> : null}
-
-      <View style={styles.statusSection}>
-        <StatusBadge expiresAt={product.warranty_expires_at} />
-        <Text style={styles.daysText}>
-          {days >= 0 ? `נותרו ${days} ימים` : `פג לפני ${Math.abs(days)} ימים`}
-        </Text>
-        {product.warranty_uncertain ? (
-          <Text style={styles.uncertainNote}>תאריך משוער — ייתכן שקיימת אחריות שונה בפועל</Text>
-        ) : null}
-        <TouchableOpacity onPress={onReportWarrantyRule} disabled={reportingRule}>
-          <Text style={styles.reportRuleLink}>תקופת האחריות נראית לא נכונה?</Text>
-        </TouchableOpacity>
+      <View style={styles.imageWrap}>
+        {product.photo_url ? (
+          <Image source={{ uri: product.photo_url }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Text style={{ fontSize: 40 }}>📦</Text>
+          </View>
+        )}
+        <View style={[styles.imageAccent, { backgroundColor: accent }]} />
       </View>
 
-      <TouchableOpacity
-        style={styles.calendarButton}
-        onPress={onAddToCalendar}
-        disabled={addingToCalendar}
-      >
-        {addingToCalendar ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : (
-          <Text style={styles.calendarButtonText}>📅 הוסף תזכורת ליומן</Text>
-        )}
+      <View style={styles.titleRow}>
+        <Text style={styles.name}>{product.name}</Text>
+        <StatusBadge expiresAt={product.warranty_expires_at} />
+      </View>
+      <Text style={styles.daysText}>
+        {days >= 0 ? `נותרו ${days} ימים` : `פג לפני ${Math.abs(days)} ימים`}
+      </Text>
+      {product.warranty_uncertain ? (
+        <Text style={styles.uncertainNote}>תאריך משוער — ייתכן שקיימת אחריות שונה בפועל</Text>
+      ) : null}
+      <TouchableOpacity onPress={onReportWarrantyRule} disabled={reportingRule}>
+        <Text style={styles.reportRuleLink}>תקופת האחריות נראית לא נכונה?</Text>
       </TouchableOpacity>
 
-      {product.receipt_id && product.photo_url ? (
+      <View style={styles.statRow}>
+        <View style={styles.statCell}>
+          <Text style={styles.statLabel}>חדר</Text>
+          <Text style={styles.statValue}>{product.room || '—'}</Text>
+        </View>
+        <View style={styles.statCell}>
+          <Text style={styles.statLabel}>תאריך רכישה</Text>
+          <Text style={styles.statValue}>{formatHebrewDate(product.purchase_date)}</Text>
+        </View>
+        <View style={styles.statCell}>
+          <Text style={styles.statLabel}>מחיר רכישה</Text>
+          <Text style={styles.statValue}>{product.price ? `₪${product.price.toLocaleString()}` : '—'}</Text>
+        </View>
+      </View>
+
+      <View style={styles.actionsRow}>
         <TouchableOpacity
-          style={styles.receiptButton}
-          onPress={() => Linking.openURL(product.photo_url)}
+          style={styles.actionButton}
+          onPress={onAddToCalendar}
+          disabled={addingToCalendar}
         >
-          <Text style={styles.receiptButtonText}>🧾 צפה בקבלה</Text>
+          {addingToCalendar ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={styles.actionButtonText}>תזכורת ליומן</Text>
+          )}
         </TouchableOpacity>
-      ) : null}
+        {product.receipt_id && product.photo_url ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => Linking.openURL(product.photo_url)}
+          >
+            <Text style={styles.actionButtonText}>קבלה מקורית</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       <TouchableOpacity
         style={styles.claimCta}
@@ -183,8 +197,8 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
         <Text style={styles.claimCtaText}>המוצר התקלקל?</Text>
       </TouchableOpacity>
 
-      <View style={styles.claimsLog}>
-        <Text style={styles.claimsHeading}>יומן תקלות</Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>יומן תקלות</Text>
         {claims.length === 0 ? (
           <Text style={styles.meta}>אין רשומות</Text>
         ) : (
@@ -198,12 +212,12 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
         )}
       </View>
 
-      <View style={styles.claimsLog}>
+      <View style={styles.section}>
         <View style={styles.tcoHeader}>
           <TouchableOpacity onPress={() => setAddingCost((v) => !v)}>
             <Text style={styles.addCostLink}>{addingCost ? 'ביטול' : '+ הוסף עלות'}</Text>
           </TouchableOpacity>
-          <Text style={styles.claimsHeading}>עלות בעלות כוללת</Text>
+          <Text style={styles.sectionHeading}>עלות בעלות כוללת</Text>
         </View>
         <Text style={styles.tcoTotal}>{`₪${totalCost.toLocaleString()}`}</Text>
 
@@ -212,6 +226,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
             <TextInput
               style={styles.costInput}
               placeholder="סכום"
+              placeholderTextColor={colors.outline}
               keyboardType="numeric"
               value={costAmount}
               onChangeText={setCostAmount}
@@ -219,6 +234,7 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
             <TextInput
               style={styles.costInput}
               placeholder="תיאור (אופציונלי)"
+              placeholderTextColor={colors.outline}
               value={costDescription}
               onChangeText={setCostDescription}
             />
@@ -257,81 +273,95 @@ export default function ProductDetailScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 12, paddingBottom: 48 },
+  content: { padding: 20, gap: 4, paddingBottom: 48 },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  image: { width: '100%', height: 200, borderRadius: 14, backgroundColor: colors.border },
+  imageWrap: { position: 'relative', marginBottom: 12 },
+  image: { width: '100%', height: 200, backgroundColor: colors.surfaceContainerHigh },
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'right' },
-  meta: { fontSize: 14, color: colors.textMuted, textAlign: 'right' },
-  statusSection: { gap: 6, alignItems: 'flex-end', marginTop: 4 },
-  daysText: { fontSize: 13, color: colors.textMuted },
-  uncertainNote: { fontSize: 12, color: colors.statusWarning },
-  reportRuleLink: { fontSize: 12, color: colors.textMuted, textDecorationLine: 'underline' },
-  receiptButton: {
-    backgroundColor: colors.surface,
+  imageAccent: { position: 'absolute', bottom: 0, right: 0, left: 0, height: 2 },
+  titleRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  name: { ...typography.headlineLg, color: colors.text, textAlign: 'right', flex: 1 },
+  meta: { ...typography.bodyMd, color: colors.textMuted, textAlign: 'right' },
+  daysText: { ...typography.bodySm, color: colors.textMuted, textAlign: 'right', marginTop: 4 },
+  uncertainNote: { ...typography.bodySm, color: colors.secondary, textAlign: 'right', marginTop: 4 },
+  reportRuleLink: {
+    ...typography.bodySm,
+    color: colors.textMuted,
+    textAlign: 'right',
+    textDecorationLine: 'underline',
+    marginTop: 4,
+  },
+  statRow: {
+    flexDirection: 'row',
+    marginTop: 16,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+  },
+  statCell: { flex: 1, alignItems: 'center', paddingVertical: 12, gap: 4 },
+  statLabel: { ...typography.labelSm, color: colors.outline },
+  statValue: { ...typography.bodyMd, color: colors.text, textAlign: 'center' },
+  actionsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  actionButton: {
+    flex: 1,
+    backgroundColor: colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  receiptButtonText: { color: colors.text, fontSize: 15 },
-  calendarButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  calendarButtonText: { color: colors.text, fontSize: 15 },
+  actionButtonText: { ...typography.bodyMd, color: colors.text, fontFamily: fonts.bodyMdSemiBold },
   claimCta: {
-    backgroundColor: colors.danger,
-    borderRadius: 12,
+    backgroundColor: colors.errorContainer,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 12,
   },
-  claimCtaText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
-  claimsLog: { marginTop: 16, gap: 10 },
-  claimsHeading: { fontSize: 16, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  claimCtaText: { ...typography.headlineSm, color: colors.onErrorContainer },
+  section: { marginTop: 20, gap: 10 },
+  sectionHeading: { ...typography.headlineSm, color: colors.text, textAlign: 'right' },
   claimItem: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
+    backgroundColor: colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: 12,
     gap: 4,
   },
-  claimDate: { fontSize: 12, color: colors.textMuted, textAlign: 'right' },
-  claimDescription: { fontSize: 14, color: colors.text, textAlign: 'right' },
-  claimStatus: { fontSize: 12, color: colors.primary, textAlign: 'right', fontWeight: '600' },
+  claimDate: { ...typography.labelSm, color: colors.outline, textAlign: 'right', textTransform: 'none' },
+  claimDescription: { ...typography.bodyMd, color: colors.text, textAlign: 'right' },
+  claimStatus: { ...typography.labelSm, color: colors.primary, textAlign: 'right' },
   tcoHeader: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  addCostLink: { color: colors.primary, fontSize: 14, fontWeight: '600' },
-  tcoTotal: { fontSize: 22, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  addCostLink: { ...typography.bodyMd, color: colors.primary },
+  tcoTotal: { ...typography.displayLg, color: colors.text, textAlign: 'right' },
   costForm: { gap: 8, marginBottom: 4 },
   costInput: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 15,
+    color: colors.text,
+    ...typography.bodyMd,
     textAlign: 'right',
   },
   costSaveButton: {
     backgroundColor: colors.primary,
-    borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  costSaveButtonText: { color: colors.primaryText, fontWeight: '600', fontSize: 14 },
+  costSaveButtonText: { ...typography.bodyMd, color: colors.primaryText, fontFamily: fonts.bodyMdSemiBold },
 });

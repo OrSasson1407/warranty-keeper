@@ -14,6 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { extractIdToken, isGoogleSignInConfigured, useGoogleSignIn } from '../auth/googleSignIn';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import { ApiError } from '../api/client';
 import type { AuthStackParamList } from '../navigation/types';
 
@@ -61,6 +62,7 @@ export default function LoginScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="אימייל"
+          placeholderTextColor={colors.outline}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -69,6 +71,7 @@ export default function LoginScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="סיסמה"
+          placeholderTextColor={colors.outline}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -106,40 +109,37 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: 24, gap: 12, flexGrow: 1, justifyContent: 'center' },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...typography.headlineLg,
     color: colors.text,
     marginBottom: 16,
     textAlign: 'right',
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    color: colors.text,
+    ...typography.bodyLg,
     textAlign: 'right',
   },
-  error: { color: colors.danger, textAlign: 'right' },
+  error: { color: colors.error, textAlign: 'right', ...typography.bodySm },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: { color: colors.primaryText, fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.primaryText, ...typography.headlineSm, fontFamily: fonts.headlineSm },
   googleButton: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
-  googleButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  link: { color: colors.primary, textAlign: 'center', marginTop: 8 },
+  googleButtonText: { color: colors.text, ...typography.bodyMd, fontFamily: fonts.bodyMdSemiBold },
+  link: { color: colors.primary, textAlign: 'center', marginTop: 8, ...typography.bodyMd },
 });

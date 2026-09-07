@@ -1,24 +1,17 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { api } from '../api/client';
 import type { Product } from '../api/types';
-import StatusBadge from '../components/StatusBadge';
+import ProductCard from '../components/ProductCard';
 import SelectField from '../components/SelectField';
+import { ProductCardSkeleton } from '../components/Skeleton';
 import { CATEGORIES, ROOMS } from '../data/categories';
 import { colors } from '../theme/colors';
-import type { AppStackParamList } from '../navigation/types';
+import { typography } from '../theme/typography';
+import type { AppTabScreenProps } from '../navigation/types';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'Search'>;
+type Props = AppTabScreenProps<'SearchTab'>;
 
 type StatusFilter = '' | 'ok' | 'warning' | 'expired';
 
@@ -43,7 +36,8 @@ export default function SearchScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const hasActiveFilter = Boolean(category || room || status || priceMin || priceMax);
+  const activeFilterCount = [category, room, status, priceMin, priceMax].filter(Boolean).length;
+  const hasActiveFilter = activeFilterCount > 0;
 
   useEffect(() => {
     const q = query.trim();
@@ -79,6 +73,7 @@ export default function SearchScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder="🔍 חפש מוצר..."
+          placeholderTextColor={colors.outline}
           value={query}
           onChangeText={setQuery}
           autoFocus
@@ -88,11 +83,17 @@ export default function SearchScreen({ navigation }: Props) {
           onPress={() => setShowFilters((v) => !v)}
         >
           <Text style={styles.filterToggleText}>🔧 סינון</Text>
+          {activeFilterCount > 0 ? (
+            <View style={styles.filterCountBadge}>
+              <Text style={styles.filterCountBadgeText}>{activeFilterCount}</Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
       {showFilters ? (
         <View style={styles.filtersPanel}>
+          <View style={styles.filtersAccent} />
           <SelectField
             label="קטגוריה"
             value={category || ALL_OPTION}
@@ -127,6 +128,7 @@ export default function SearchScreen({ navigation }: Props) {
             <TextInput
               style={styles.priceInput}
               placeholder="מחיר מינימלי"
+              placeholderTextColor={colors.outline}
               keyboardType="numeric"
               value={priceMin}
               onChangeText={setPriceMin}
@@ -134,6 +136,7 @@ export default function SearchScreen({ navigation }: Props) {
             <TextInput
               style={styles.priceInput}
               placeholder="מחיר מקסימלי"
+              placeholderTextColor={colors.outline}
               keyboardType="numeric"
               value={priceMax}
               onChangeText={setPriceMax}
@@ -141,8 +144,6 @@ export default function SearchScreen({ navigation }: Props) {
           </View>
         </View>
       ) : null}
-
-      {loading ? <ActivityIndicator style={{ marginTop: 20 }} /> : null}
 
       {searched && !loading ? (
         <Text style={styles.resultsLabel}>תוצאות ({results.length}):</Text>
@@ -152,14 +153,24 @@ export default function SearchScreen({ navigation }: Props) {
         data={results}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          loading ? (
+            <View style={{ gap: 12 }}>
+              <ProductCardSkeleton />
+              <ProductCardSkeleton />
+            </View>
+          ) : searched ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyText}>לא נמצאו מוצרים תואמים.</Text>
+            </View>
+          ) : null
+        }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
+          <ProductCard
+            product={item}
             onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
-          >
-            <Text style={styles.cardTitle}>{item.name}</Text>
-            <StatusBadge expiresAt={item.warranty_expires_at} />
-          </TouchableOpacity>
+          />
         )}
       />
     </View>
@@ -171,62 +182,68 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 8 },
   input: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    color: colors.text,
+    ...typography.bodyLg,
     textAlign: 'right',
   },
   filterToggle: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   filterToggleActive: { borderColor: colors.primary },
-  filterToggleText: { fontSize: 14, color: colors.text },
+  filterToggleText: { ...typography.bodyMd, color: colors.text },
+  filterCountBadge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCountBadgeText: { ...typography.labelSm, color: colors.primaryText, textTransform: 'none' },
   filtersPanel: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
+    backgroundColor: colors.surfaceContainer,
     padding: 14,
     gap: 12,
+    position: 'relative',
   },
+  filtersAccent: { position: 'absolute', top: 0, right: 0, left: 0, height: 2, backgroundColor: colors.primary },
   statusRow: { flexDirection: 'row-reverse', gap: 8, flexWrap: 'wrap' },
   statusChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
   },
   statusChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  statusChipText: { fontSize: 13, color: colors.text },
-  statusChipTextActive: { color: colors.primaryText, fontWeight: '600' },
+  statusChipText: { ...typography.bodySm, color: colors.text },
+  statusChipTextActive: { color: colors.primaryText, fontFamily: typography.bodySm.fontFamily },
   priceRow: { flexDirection: 'row-reverse', gap: 8 },
   priceInput: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
+    color: colors.text,
+    ...typography.bodyMd,
     textAlign: 'right',
   },
-  resultsLabel: { fontSize: 13, color: colors.textMuted, textAlign: 'right' },
-  list: { gap: 10 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 14,
-    gap: 8,
-  },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: colors.text, textAlign: 'right' },
+  resultsLabel: { ...typography.bodySm, color: colors.textMuted, textAlign: 'right' },
+  list: { gap: 12 },
+  empty: { paddingTop: 40, alignItems: 'center', gap: 12 },
+  emptyIcon: { fontSize: 32 },
+  emptyText: { ...typography.bodyMd, color: colors.textMuted, textAlign: 'center' },
 });

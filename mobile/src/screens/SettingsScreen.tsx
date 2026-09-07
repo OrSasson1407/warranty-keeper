@@ -10,18 +10,17 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
 import { api, ApiError } from '../api/client';
 import type { GmailStatus, Household } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import { registerForExpiryPush } from '../notifications/registerPush';
 import { extractAuthCode, extractCodeVerifier, useGmailConnectRequest } from '../auth/gmailConnect';
 import { isGoogleSignInConfigured } from '../auth/googleSignIn';
-import type { AppStackParamList } from '../navigation/types';
+import type { AppTabScreenProps } from '../navigation/types';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'Settings'>;
+type Props = AppTabScreenProps<'SettingsTab'>;
 
 const PUSH_PREF_KEY = 'wk_push_enabled';
 
@@ -129,7 +128,10 @@ export default function SettingsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>{`משק בית: "${household.name}"`}</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionIcon}>🏠</Text>
+        <Text style={styles.sectionTitle}>{`משק בית: "${household.name}"`}</Text>
+      </View>
       <View style={styles.card}>
         {household.members.map((m) => (
           <Text key={m.id} style={styles.memberRow}>
@@ -147,7 +149,10 @@ export default function SettingsScreen({ navigation }: Props) {
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>מנוי</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionIcon}>⭐</Text>
+        <Text style={styles.sectionTitle}>מנוי</Text>
+      </View>
       <View style={styles.card}>
         {household.tier === 'premium' ? (
           <Text style={styles.premiumBadge}>⭐ Premium — ללא הגבלת מוצרים</Text>
@@ -167,7 +172,10 @@ export default function SettingsScreen({ navigation }: Props) {
 
       {isGoogleSignInConfigured() ? (
         <>
-          <Text style={styles.sectionTitle}>ייבוא קבלות מ-Gmail</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>📧</Text>
+            <Text style={styles.sectionTitle}>ייבוא קבלות מ-Gmail</Text>
+          </View>
           <View style={styles.card}>
             <Text style={styles.gmailExplainer}>
               חיבור אופציונלי: נסרוק אך ורק מיילים מחנויות ידועות (כגון Amazon, KSP, איקאה) לאיתור
@@ -211,7 +219,10 @@ export default function SettingsScreen({ navigation }: Props) {
         </>
       ) : null}
 
-      <Text style={styles.sectionTitle}>התראות</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionIcon}>🔔</Text>
+        <Text style={styles.sectionTitle}>התראות</Text>
+      </View>
       <View style={styles.card}>
         <View style={styles.switchRow}>
           <Switch value={pushEnabled} onValueChange={onTogglePush} />
@@ -234,32 +245,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textAlign: 'right',
+  sectionHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 16,
   },
-  card: { backgroundColor: colors.surface, borderRadius: 12, padding: 14, gap: 10 },
-  memberRow: { fontSize: 16, color: colors.text, textAlign: 'right' },
+  sectionIcon: { fontSize: 13 },
+  sectionTitle: {
+    ...typography.labelSm,
+    color: colors.outline,
+    textAlign: 'right',
+  },
+  card: { backgroundColor: colors.surfaceContainer, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 },
+  memberRow: { ...typography.bodyLg, color: colors.text, textAlign: 'right' },
   inviteButton: { paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
-  inviteButtonText: { color: colors.primary, textAlign: 'right', fontWeight: '600' },
-  fullNote: { color: colors.textMuted, textAlign: 'right', fontSize: 13 },
-  premiumBadge: { color: colors.statusOk, fontWeight: '700', textAlign: 'right', fontSize: 15 },
+  inviteButtonText: { color: colors.primary, textAlign: 'right', ...typography.bodyMd, fontFamily: fonts.bodyMdSemiBold },
+  fullNote: { color: colors.textMuted, textAlign: 'right', ...typography.bodySm },
+  premiumBadge: { color: colors.tertiary, textAlign: 'right', ...typography.bodyLg, fontFamily: fonts.bodyMdSemiBold },
   upgradeButton: {
     backgroundColor: colors.primary,
-    borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  upgradeButtonText: { color: colors.primaryText, fontWeight: '600', fontSize: 14 },
-  gmailExplainer: { fontSize: 13, color: colors.textMuted, textAlign: 'right', lineHeight: 18 },
+  upgradeButtonText: { color: colors.primaryText, ...typography.bodyMd, fontFamily: fonts.bodyMdSemiBold },
+  gmailExplainer: { ...typography.bodySm, color: colors.textMuted, textAlign: 'right' },
   gmailLink: { paddingVertical: 4 },
   disconnectButton: { alignItems: 'center', paddingVertical: 8 },
-  disconnectButtonText: { color: colors.danger, fontWeight: '600', fontSize: 14 },
+  disconnectButtonText: { color: colors.error, ...typography.bodyMd, fontFamily: fonts.bodyMdSemiBold },
   switchRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
-  switchLabel: { fontSize: 15, color: colors.text },
+  switchLabel: { ...typography.bodyLg, color: colors.text },
   logoutButton: { marginTop: 32, alignItems: 'center', padding: 12 },
-  logoutText: { color: colors.danger, fontSize: 15, fontWeight: '600' },
+  logoutText: { color: colors.error, ...typography.bodyLg, fontFamily: fonts.bodyMdSemiBold },
 });

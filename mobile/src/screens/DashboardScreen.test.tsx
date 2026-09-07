@@ -72,37 +72,35 @@ describe('DashboardScreen', () => {
     expect(screen.getByText('אוזניות JBL')).toBeTruthy();
   });
 
-  it('the "קרוב לתפוגה" filter hides products that are still safely in warranty', async () => {
+  it('the "קרוב לתפוגה" filter shows only products expiring within 30 days', async () => {
+    const soon = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     mockListProducts.mockResolvedValue([
-      product({ id: 'p1', name: 'בטוח', warranty_expires_at: '2030-01-01' }),
+      product({ id: 'p1', name: 'בטוח', warranty_expires_at: '2099-01-01' }),
+      product({ id: 'p2', name: 'עומד לפוג', warranty_expires_at: soon }),
+      product({ id: 'p3', name: 'פג', warranty_expires_at: '2020-01-01' }),
+    ]);
+    render(<DashboardScreen navigation={createMockNavigation() as any} route={{} as any} />);
+    await screen.findByText('בטוח');
+
+    fireEvent.press(screen.getByText(/קרוב לתפוגה \(/));
+
+    expect(screen.getByText('עומד לפוג')).toBeTruthy();
+    expect(screen.queryByText('בטוח')).toBeNull();
+    expect(screen.queryByText('פג')).toBeNull();
+  });
+
+  it('the "פג תוקף" filter shows only already-expired products', async () => {
+    mockListProducts.mockResolvedValue([
+      product({ id: 'p1', name: 'בטוח', warranty_expires_at: '2099-01-01' }),
       product({ id: 'p2', name: 'פג', warranty_expires_at: '2020-01-01' }),
     ]);
     render(<DashboardScreen navigation={createMockNavigation() as any} route={{} as any} />);
     await screen.findByText('בטוח');
 
-    fireEvent.press(screen.getByText('קרוב לתפוגה'));
+    fireEvent.press(screen.getByText(/פג תוקף/));
 
     expect(screen.getByText('פג')).toBeTruthy();
     expect(screen.queryByText('בטוח')).toBeNull();
-  });
-
-  it('navigates to AddProductChoose when the + button is pressed', () => {
-    const navigation = createMockNavigation();
-    render(<DashboardScreen navigation={navigation as any} route={{} as any} />);
-
-    fireEvent.press(screen.getByText('+'));
-    expect(navigation.navigate).toHaveBeenCalledWith('AddProductChoose');
-  });
-
-  it('navigates to Search and Settings from the header icons', () => {
-    const navigation = createMockNavigation();
-    render(<DashboardScreen navigation={navigation as any} route={{} as any} />);
-
-    fireEvent.press(screen.getByText('🔍'));
-    expect(navigation.navigate).toHaveBeenCalledWith('Search');
-
-    fireEvent.press(screen.getByText('⚙️'));
-    expect(navigation.navigate).toHaveBeenCalledWith('Settings');
   });
 
   it('navigates to ProductDetail with the right id when a product is tapped', async () => {

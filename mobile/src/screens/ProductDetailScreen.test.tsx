@@ -146,9 +146,9 @@ describe('ProductDetailScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('Claim', { productId: 'p1' });
   });
 
-  it('opens the receipt image when "צפה בקבלה" is pressed', async () => {
+  it('opens the receipt image when "קבלה מקורית" is pressed', async () => {
     renderScreen();
-    fireEvent.press(await screen.findByText('🧾 צפה בקבלה'));
+    fireEvent.press(await screen.findByText('קבלה מקורית'));
     await waitFor(() =>
       expect(Linking.openURL).toHaveBeenCalledWith('https://example.test/p1.jpg'),
     );
@@ -158,12 +158,12 @@ describe('ProductDetailScreen', () => {
     mockGetProduct.mockResolvedValue(product({ receipt_id: null }));
     renderScreen();
     await screen.findByText('מזגן טורנדו');
-    expect(screen.queryByText('🧾 צפה בקבלה')).toBeNull();
+    expect(screen.queryByText('קבלה מקורית')).toBeNull();
   });
 
-  it('adds a calendar reminder and confirms success when "הוסף תזכורת ליומן" is pressed', async () => {
+  it('adds a calendar reminder and confirms success when "תזכורת ליומן" is pressed', async () => {
     renderScreen();
-    fireEvent.press(await screen.findByText('📅 הוסף תזכורת ליומן'));
+    fireEvent.press(await screen.findByText('תזכורת ליומן'));
 
     await waitFor(() =>
       expect(mockAddToCalendar).toHaveBeenCalledWith('מזגן טורנדו', '2028-01-01'),
@@ -174,7 +174,7 @@ describe('ProductDetailScreen', () => {
   it('shows a failure alert when adding to the calendar is not possible', async () => {
     mockAddToCalendar.mockResolvedValue(false);
     renderScreen();
-    fireEvent.press(await screen.findByText('📅 הוסף תזכורת ליומן'));
+    fireEvent.press(await screen.findByText('תזכורת ליומן'));
 
     await waitFor(() =>
       expect(Alert.alert).toHaveBeenCalledWith('לא ניתן להוסיף ליומן', expect.any(String)),
@@ -183,7 +183,7 @@ describe('ProductDetailScreen', () => {
 
   it('shows the purchase price as the total when there are no logged costs', async () => {
     renderScreen(); // default product has price: 3200
-    expect(await screen.findByText('₪3,200')).toBeTruthy();
+    expect((await screen.findAllByText('₪3,200')).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('לא נוספו עלויות נוספות')).toBeTruthy();
   });
 

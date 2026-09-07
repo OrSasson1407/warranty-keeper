@@ -1,30 +1,23 @@
 import { useCallback, useState } from 'react';
-import {
-  FlatList,
-  Image,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api } from '../api/client';
 import { loadProductsCache, saveProductsCache } from '../api/offlineCache';
 import type { Product } from '../api/types';
 import DashboardSummary from '../components/DashboardSummary';
-import StatusBadge from '../components/StatusBadge';
+import ProductCard from '../components/ProductCard';
+import { ProductCardSkeleton } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { typography } from '../theme/typography';
 import { computeAnalytics } from '../utils/analytics';
 import { formatHebrewDate, warrantyStatus } from '../utils/warrantyStatus';
-import type { AppStackParamList } from '../navigation/types';
+import type { AppTabScreenProps } from '../navigation/types';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'Dashboard'>;
+type Props = AppTabScreenProps<'DashboardTab'>;
 
-type Filter = 'all' | 'expiring';
+type Filter = 'all' | 'warning' | 'expired';
 
 export default function DashboardScreen({ navigation }: Props) {
   const { user } = useAuth();
@@ -57,31 +50,15 @@ export default function DashboardScreen({ navigation }: Props) {
   );
 
   const visible =
-    filter === 'expiring'
-      ? products.filter((p) => warrantyStatus(p.warranty_expires_at) !== 'ok')
-      : products;
+    filter === 'all' ? products : products.filter((p) => warrantyStatus(p.warranty_expires_at) === filter);
 
+  const expiredCount = products.filter((p) => warrantyStatus(p.warranty_expires_at) === 'expired').length;
   const analytics = computeAnalytics(products);
 
   const firstName = user?.full_name?.split(' ')[0] ?? '';
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>שלום, {firstName} 👋</Text>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')} style={styles.iconButton}>
-            <Text style={styles.icon}>🔍</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Settings')}
-            style={styles.iconButton}
-          >
-            <Text style={styles.icon}>⚙️</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {offlineSince ? (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineBannerText}>
@@ -90,19 +67,37 @@ export default function DashboardScreen({ navigation }: Props) {
         </View>
       ) : null}
 
+      <View style={styles.header}>
+        <Text style={styles.greeting}>שלום, {firstName} 👋</Text>
+        <Text style={styles.subGreeting}>
+          {analytics.totalCount} מוצרים פעילים
+          {analytics.expiringSoonCount > 0 ? `, ${analytics.expiringSoonCount} עומד לפוג בקרוב` : ''}
+        </Text>
+      </View>
+
       <View style={styles.tabs}>
         <TouchableOpacity
           onPress={() => setFilter('all')}
           style={[styles.tab, filter === 'all' && styles.tabActive]}
         >
-          <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>הכל</Text>
+          <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>
+            הכל ({products.length})
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => setFilter('expiring')}
-          style={[styles.tab, filter === 'expiring' && styles.tabActive]}
+          onPress={() => setFilter('warning')}
+          style={[styles.tab, filter === 'warning' && styles.tabActive]}
         >
-          <Text style={[styles.tabText, filter === 'expiring' && styles.tabTextActive]}>
-            קרוב לתפוגה
+          <Text style={[styles.tabText, filter === 'warning' && styles.tabTextActive]}>
+            קרוב לתפוגה ({analytics.expiringSoonCount})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setFilter('expired')}
+          style={[styles.tab, filter === 'expired' && styles.tabActive]}
+        >
+          <Text style={[styles.tabText, filter === 'expired' && styles.tabTextActive]}>
+            פג תוקף ({expiredCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -116,37 +111,26 @@ export default function DashboardScreen({ navigation }: Props) {
           products.length > 0 ? <DashboardSummary analytics={analytics} /> : null
         }
         ListEmptyComponent={
-          !loading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>
-                עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!
-              </Text>
+          loading ? (
+            <View style={{ gap: 12 }}>
+              <ProductCardSkeleton />
+              <ProductCardSkeleton />
+              <ProductCardSkeleton />
             </View>
-          ) : null
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>🛡️</Text>
+              <Text style={styles.emptyText}>עדיין אין מוצרים. הוסיפו את הראשון עם הכפתור למטה!</Text>
+            </View>
+          )
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
+          <ProductCard
+            product={item}
             onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
-          >
-            {item.photo_url ? (
-              <Image source={{ uri: item.photo_url }} style={styles.thumb} />
-            ) : (
-              <View style={[styles.thumb, styles.thumbPlaceholder]}>
-                <Text style={styles.thumbEmoji}>📦</Text>
-              </View>
-            )}
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>{item.name}</Text>
-              <StatusBadge expiresAt={item.warranty_expires_at} />
-            </View>
-          </TouchableOpacity>
+          />
         )}
       />
-
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddProductChoose')}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -155,65 +139,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   offlineBanner: {
     marginHorizontal: 20,
-    marginBottom: 8,
-    backgroundColor: colors.statusWarningBg,
-    borderRadius: 10,
+    marginTop: 12,
+    backgroundColor: colors.secondaryContainer,
     padding: 10,
   },
-  offlineBannerText: { color: colors.statusWarning, fontSize: 12, textAlign: 'center' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  greeting: { fontSize: 20, fontWeight: '700', color: colors.text },
-  headerIcons: { flexDirection: 'row', gap: 12 },
-  iconButton: { padding: 6 },
-  icon: { fontSize: 20 },
-  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 8 },
+  offlineBannerText: { ...typography.bodySm, color: colors.onSecondaryContainer, textAlign: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, alignItems: 'flex-end' },
+  greeting: { ...typography.headlineLg, color: colors.text },
+  subGreeting: { ...typography.bodySm, color: colors.textMuted, marginTop: 4 },
+  tabs: { flexDirection: 'row', gap: 4, paddingHorizontal: 20, marginBottom: 12 },
   tab: {
-    paddingHorizontal: 14,
+    flex: 1,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
+    alignItems: 'center',
+    backgroundColor: colors.surfaceContainerLow,
   },
   tabActive: { backgroundColor: colors.primary },
-  tabText: { color: colors.textMuted, fontWeight: '600', fontSize: 13 },
-  tabTextActive: { color: colors.primaryText },
-  list: { paddingHorizontal: 20, paddingBottom: 100, gap: 12 },
-  empty: { paddingTop: 60, paddingHorizontal: 20 },
-  emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 15 },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 12,
-    gap: 12,
-    alignItems: 'center',
-  },
-  thumb: { width: 56, height: 56, borderRadius: 10, backgroundColor: colors.border },
-  thumbPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  thumbEmoji: { fontSize: 24 },
-  cardBody: { flex: 1, gap: 6 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: colors.text, textAlign: 'right' },
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    alignSelf: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  fabText: { color: colors.primaryText, fontSize: 32, lineHeight: 34, fontWeight: '400' },
+  tabText: { ...typography.labelSm, color: colors.textMuted, textTransform: 'none' },
+  tabTextActive: { color: colors.primaryText, fontFamily: typography.labelSm.fontFamily },
+  list: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
+  empty: { paddingTop: 60, paddingHorizontal: 20, alignItems: 'center', gap: 12 },
+  emptyIcon: { fontSize: 40 },
+  emptyText: { ...typography.bodyMd, color: colors.textMuted, textAlign: 'center' },
 });

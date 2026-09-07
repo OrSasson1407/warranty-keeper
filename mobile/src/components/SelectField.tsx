@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 
 interface Props {
   label: string;
@@ -27,6 +28,7 @@ export default function SelectField({ label, value, options, onChange, placehold
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
+            <View style={styles.sheetAccent} />
             <FlatList
               data={options}
               keyExtractor={(item) => item}
@@ -53,30 +55,28 @@ export default function SelectField({ label, value, options, onChange, placehold
 
 const styles = StyleSheet.create({
   wrapper: { gap: 6 },
-  label: { fontSize: 13, color: colors.textMuted, textAlign: 'right' },
+  label: { ...typography.labelSm, color: colors.outline, textAlign: 'right' },
   field: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainerLowest,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  valueText: { fontSize: 16, color: colors.text },
-  placeholderText: { fontSize: 16, color: colors.textMuted },
-  chevron: { color: colors.textMuted },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' },
+  valueText: { ...typography.bodyLg, color: colors.text },
+  placeholderText: { ...typography.bodyLg, color: colors.outline },
+  chevron: { color: colors.outline },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceContainer,
     maxHeight: '60%',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
     paddingVertical: 8,
   },
+  sheetAccent: { height: 2, backgroundColor: colors.primary },
   option: { paddingVertical: 14, paddingHorizontal: 20 },
-  optionText: { fontSize: 16, color: colors.text, textAlign: 'right' },
-  optionTextActive: { color: colors.primary, fontWeight: '600' },
+  optionText: { ...typography.bodyLg, color: colors.text, textAlign: 'right' },
+  optionTextActive: { color: colors.primary, fontFamily: fonts.bodyMdSemiBold },
 });

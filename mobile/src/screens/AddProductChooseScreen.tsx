@@ -13,6 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { api, ApiError } from '../api/client';
 import { colors } from '../theme/colors';
+import { fonts, typography } from '../theme/typography';
 import type { AppStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'AddProductChoose'>;
@@ -91,21 +92,19 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   heading: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.headlineLg,
     color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   captureButton: {
     backgroundColor: colors.primary,
-    borderRadius: 20,
     paddingVertical: 48,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
   },
   captureEmoji: { fontSize: 40 },
-  captureText: { color: colors.primaryText, fontSize: 18, fontWeight: '600' },
-  manualLink: { color: colors.textMuted, textAlign: 'center', fontSize: 15 },
+  captureText: { color: colors.primaryText, ...typography.headlineSm, fontFamily: fonts.headlineSm },
+  manualLink: { color: colors.textMuted, textAlign: 'center', ...typography.bodyMd },
 });
